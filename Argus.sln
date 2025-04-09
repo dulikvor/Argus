@@ -4,6 +4,8 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus", "Argus.csproj", "{256415CD-17B3-B4B8-4003-9DE50BDB9ECE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApiTestingAgent", "Examples\ApiTestingAgent\ApiTestingAgent.csproj", "{9F05823C-D0B7-407E-A0AB-60934D710B29}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -14,6 +16,10 @@ Global
 		{256415CD-17B3-B4B8-4003-9DE50BDB9ECE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{256415CD-17B3-B4B8-4003-9DE50BDB9ECE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{256415CD-17B3-B4B8-4003-9DE50BDB9ECE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F05823C-D0B7-407E-A0AB-60934D710B29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F05823C-D0B7-407E-A0AB-60934D710B29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F05823C-D0B7-407E-A0AB-60934D710B29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F05823C-D0B7-407E-A0AB-60934D710B29}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

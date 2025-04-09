@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Argus", "Argus.csproj", "{256415CD-17B3-B4B8-4003-9DE50BDB9ECE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{256415CD-17B3-B4B8-4003-9DE50BDB9ECE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{256415CD-17B3-B4B8-4003-9DE50BDB9ECE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{256415CD-17B3-B4B8-4003-9DE50BDB9ECE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{256415CD-17B3-B4B8-4003-9DE50BDB9ECE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {41DDBD87-C646-4AAC-A254-BC3E59B5C7A9}
+	EndGlobalSection
+EndGlobal

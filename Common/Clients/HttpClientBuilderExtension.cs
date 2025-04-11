@@ -1,4 +1,6 @@
-﻿namespace Argus.Common.Clients
+﻿using Microsoft.Extensions.DependencyInjection;
+
+namespace Argus.Common.Clients
 {
     public static class HttpClientBuilderExtension
     {

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace Argus.Common.Web;
 
 public interface IResponseStreamWriter<T> where T : IResponseStreamWriter<T>

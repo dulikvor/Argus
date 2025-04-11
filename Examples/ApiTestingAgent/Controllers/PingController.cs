@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Argus.Controllers
+namespace ApiTestingAgent.Controllers
 {
     [AllowAnonymous]
     [ApiController]
     public class PingController : ControllerBase
     {
-        private const string PingResponse = "Argus saying hello :)";
+        private const string PingResponse = "Api Testing Agent saying hello :)";
 
         [HttpGet]
         [Route("")]

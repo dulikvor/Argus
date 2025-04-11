@@ -5,7 +5,7 @@ using Argus.Contracts.OpenAI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Argus.Controllers;
+namespace ApiTestingAgent.Controllers;
 
 [ApiController]
 [Authorize]

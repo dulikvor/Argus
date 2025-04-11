@@ -5,6 +5,8 @@ using Argus.Common.GitHubAuthentication;
 using Argus.Common.Web;
 using Argus.Data;
 
+namespace ApiTestingAgent;
+
 public class Startup
 {
     private readonly IConfiguration _configuration;

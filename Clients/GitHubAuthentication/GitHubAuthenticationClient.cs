@@ -1,6 +1,5 @@
 ﻿using Argus.Common.Clients;
 using Argus.Common.Data;
-using Argus.Common.GitHubAuthentication;
 using Argus.Contracts;
 using Argus.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

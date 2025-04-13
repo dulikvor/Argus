@@ -1,7 +1,10 @@
+using ApiTestingAgent.Services;
+using ApiTestingAgent.StateMachine.PromptHandlers;
 using Argus.Clients.GitHubAuthentication;
 using Argus.Clients.GitHubLLMQuery;
 using Argus.Common.Clients;
 using Argus.Common.GitHubAuthentication;
+using Argus.Common.PromptHandlers;
 using Argus.Common.Web;
 using Argus.Data;
 
@@ -22,6 +25,10 @@ public class Startup
         services.AddControllers();
         services.AddAuthentication(GitHubAuthenticationHandler.GitHubScheme)
             .AddScheme<GitHubAuthenticationSchemeOptions, GitHubAuthenticationHandler>(GitHubAuthenticationHandler.GitHubScheme, options => { });
+
+        services.AddSingleton<IStatePromptHandler, ServiceInformationPromptHandler>();
+        services.AddSingleton<IPromptHandlerFactory, PromptHandlerFactory>();
+        services.AddSingleton<IApiTestService, ApiTestService>();
 
         services.AddSingleton<IResponseStreamWriter<ServerSentEventsStreamWriter>, ServerSentEventsStreamWriter>();
 

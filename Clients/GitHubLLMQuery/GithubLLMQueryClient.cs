@@ -6,11 +6,13 @@ using OpenAI;
 using OpenAI.Chat;
 using System.ClientModel;
 using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace Argus.Clients.GitHubLLMQuery
 {
     public class GitHubLLMQueryClient : IGitHubLLMQueryClient
     {
+        private const string DefaultLLMModel = "gpt-4o";
         private readonly GitHubLLMQueryClientOptions _clientOptions;
         private static readonly ConcurrentDictionary<string, OpenAIClient> Clients;
 
@@ -40,8 +42,8 @@ namespace Argus.Clients.GitHubLLMQuery
 
             var userName = CallContext.GetData(ServiceConstants.Authentication.UserNameKey) as string;
             var client = GetOrCreateClient(userName);
-            var chatClient = client.GetChatClient(string.IsNullOrEmpty(coPilotChatRequestMessage.Model) ? "gpt-4o" : coPilotChatRequestMessage.Model);
-            
+            var chatClient = client.GetChatClient(string.IsNullOrEmpty(coPilotChatRequestMessage.Model) ? DefaultLLMModel : coPilotChatRequestMessage.Model);
+
             var completionUpdates = chatClient.CompleteChatStreamingAsync(
                 coPilotChatRequestMessage.Messages.Select(message => new UserChatMessage(message.Content)));
 
@@ -51,6 +53,28 @@ namespace Argus.Clients.GitHubLLMQuery
                 result.Add(new CoPilotChatResponseMessage(completionUpdate));
             }
             return result;
+        }
+
+        public async Task<(TResponse, ChatCompletion)> Query<TResponse>(CoPilotChatRequestMessage coPilotChatRequestMessage, OpenAIStructuredOutput structuredOutput) where TResponse : class
+        {
+            ArgumentValidationHelper.Ensure.NotNull(coPilotChatRequestMessage.Model, "Model");
+            ArgumentValidationHelper.Ensure.NotNull(structuredOutput, "StructuredOutput");
+
+            var userName = CallContext.GetData(ServiceConstants.Authentication.UserNameKey) as string;
+            var client = GetOrCreateClient(userName);
+            var chatClient = client.GetChatClient(string.IsNullOrEmpty(coPilotChatRequestMessage.Model) ? DefaultLLMModel : coPilotChatRequestMessage.Model);
+
+            ChatCompletionOptions chatCompletionOptions = new ChatCompletionOptions
+            {
+                ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(structuredOutput.JsonSchemaFormatName, structuredOutput.JsonSchema)
+            };
+
+            var chatCompletion = await chatClient.CompleteChatAsync(
+                    coPilotChatRequestMessage.Messages.Select(message => new UserChatMessage(message.Content)), chatCompletionOptions);
+
+
+            // Replace the problematic line with the following:
+            return new(JsonSerializer.Deserialize<TResponse>(chatCompletion.Value.Content.First().Text), chatCompletion.Value);
         }
 
         private OpenAIClient GetOrCreateClient(string userName)

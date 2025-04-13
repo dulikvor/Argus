@@ -1,3 +1,4 @@
+using ApiTestingAgent.Services;
 using Argus.Clients.GitHubLLMQuery;
 using Argus.Common.GitHubAuthentication;
 using Argus.Common.Web;
@@ -12,15 +13,18 @@ namespace ApiTestingAgent.Controllers;
 [GitHubAuthenticationContextFilter]
 public class AgentController : ControllerBase
 {
+    private readonly IApiTestService _apiTestService;
     private readonly IGitHubLLMQueryClient _gitHubLLMQueryClient;
     private readonly IResponseStreamWriter<ServerSentEventsStreamWriter> _responseStreamWriter;
     private readonly ILogger<AgentController> _logger;
 
     public AgentController(
+        IApiTestService apiTestService,
         IGitHubLLMQueryClient gitHubLLMQueryClient,
         IResponseStreamWriter<ServerSentEventsStreamWriter> responseStreamWriter,
         ILogger<AgentController> logger)
     {
+        _apiTestService = apiTestService;
         _gitHubLLMQueryClient = gitHubLLMQueryClient;
         _responseStreamWriter = responseStreamWriter;
         _logger = logger;
@@ -29,9 +33,16 @@ public class AgentController : ControllerBase
     [HttpPost("/nextEvent")]
     public async Task NextEvent([FromBody] CoPilotChatRequestMessage coPilotChatRequestMessage)
     {
-        var streamingChatCompletionUpdates = await _gitHubLLMQueryClient.Query(coPilotChatRequestMessage);
+        try
+        {
+            var streamingChatCompletionUpdates = await _apiTestService.InvokeNext(coPilotChatRequestMessage);
 
-        HttpContext.Response.StatusCode = 200;
-        await _responseStreamWriter.WriteToStreamAsync(HttpContext, streamingChatCompletionUpdates);
+            HttpContext.Response.StatusCode = 200;
+            await _responseStreamWriter.WriteToStreamAsync(HttpContext, streamingChatCompletionUpdates);
+        }
+        catch (System.ClientModel.ClientResultException ex)
+        {
+            Console.WriteLine(ex.ToString());
+        }
     }
 }

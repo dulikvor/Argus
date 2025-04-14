@@ -1,6 +1,6 @@
 ﻿namespace ApiTestingAgent.StateMachine
 {
-    public enum ApiTestStateTransitions 
+    public enum ApiTestStateTransitions
     {
         TestDescriptor,
         RestDiscovery

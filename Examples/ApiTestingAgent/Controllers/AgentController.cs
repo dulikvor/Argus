@@ -35,10 +35,11 @@ public class AgentController : ControllerBase
     {
         try
         {
-            var streamingChatCompletionUpdates = await _apiTestService.InvokeNext(coPilotChatRequestMessage);
-
+            _responseStreamWriter.StartStream(HttpContext);
             HttpContext.Response.StatusCode = 200;
-            await _responseStreamWriter.WriteToStreamAsync(HttpContext, streamingChatCompletionUpdates);
+            await _apiTestService.InvokeNext(HttpContext, coPilotChatRequestMessage);
+
+            await _responseStreamWriter.CompleteStream(HttpContext);
         }
         catch (System.ClientModel.ClientResultException ex)
         {

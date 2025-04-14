@@ -30,10 +30,24 @@ public class SchemaValidator
 
             // Verify the type of the property
             var expectedTypeName = schemaProperty.Value?["type"]?.ToString().ToLower() ?? string.Empty;
-            if (expectedTypeName != null && !actualProperties[schemaProperty.Key.ToLower()].Name.ToLower().Equals(expectedTypeName))
+            if (expectedTypeName != null)
             {
-                Console.WriteLine($"Type mismatch for property: {schemaProperty.Key}. Expected: {expectedTypeName}, Actual: {actualProperties[schemaProperty.Key.ToLower()]}");
-                return false;
+                var actualPropertyType = actualProperties[schemaProperty.Key.ToLower()];
+
+                // Check for array type compatibility
+                if (expectedTypeName == "array")
+                {
+                    if (!actualPropertyType.IsArray && !(actualPropertyType.IsGenericType && actualPropertyType.GetGenericTypeDefinition() == typeof(List<>)))
+                    {
+                        Console.WriteLine($"Type mismatch for property: {schemaProperty.Key}. Expected: array, Actual: {actualType}");
+                        return false;
+                    }
+                }
+                else if (!actualPropertyType.Name.ToLower().Equals(expectedTypeName))
+                {
+                    Console.WriteLine($"Type mismatch for property: {schemaProperty.Key}. Expected: {expectedTypeName}, Actual: {actualType}");
+                    return false;
+                }
             }
         }
 

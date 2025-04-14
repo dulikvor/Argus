@@ -1,4 +1,6 @@
-﻿namespace Argus.Common.StateMachine;
+﻿using ApiTestingAgent.StateMachine.Steps;
+
+namespace Argus.Common.StateMachine;
 
 public class StateContext<TTransition, TStepInput, TStepResult> where TTransition : Enum
 {
@@ -9,7 +11,7 @@ public class StateContext<TTransition, TStepInput, TStepResult> where TTransitio
         _currentState = startingState;
     }
 
-    public async Task<TStepResult> HandleState(TTransition commandType, TStepInput stepInput)
+    public async Task<(TStepResult, TTransition)> HandleState(TTransition commandType, TStepInput stepInput)
     {
         return await _currentState.HandleState(this, commandType, stepInput);
     }
@@ -17,6 +19,11 @@ public class StateContext<TTransition, TStepInput, TStepResult> where TTransitio
     public void SetState(State<TTransition, TStepInput, TStepResult> nextState)
     {
         _currentState = nextState;
+    }
+
+    public bool IsEnd()
+    {
+        return _currentState is EndState<TTransition, TStepInput, TStepResult>;
     }
 
     public void OnNonSupportedTransition(TTransition transition)

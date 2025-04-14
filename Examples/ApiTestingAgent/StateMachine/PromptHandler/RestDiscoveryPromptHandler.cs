@@ -1,6 +1,13 @@
 using ApiTestingAgent.StateMachine.StructuredResponses;
 using Argus.Common.PromptHandlers;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Hosting;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Resources;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace ApiTestingAgent.StateMachine.PromptHandlers;
 public class RestDiscoveryPromptHandler : BaseStatePromptHandler
@@ -16,9 +23,17 @@ public class RestDiscoveryPromptHandler : BaseStatePromptHandler
     {
         // Initialize prompts
         Prompts.Add(StatePromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryPromptKey,
-            "Extract the user REST resources and their child resources. A reference to these resources is expected to be provided in a URL that the LLM should analyze. " +
-            "The reference should ideally point to a Swagger-formatted web page. If the URL is missing, prompt the user to provide a valid URL that depicts such a Swagger page. " +
-            "If the analysis is successful, return a list of all detected resources. The required information should be extracted and presented in accordance with the provided structured response format. ");
+            "You are given an OpenAPI JSON specification containing Azure REST API resources. " +
+            "Your task is to analyze all the operations listed under the \"paths\" section and extract the following for each operation:\n\n" +
+            "1. **Rest route** – the full API endpoint URL (with placeholders like {subscriptionId}, {resourceGroupName}, {workspaceName}, etc.).\n" +
+            "2. **HTTP method** – e.g., GET, PUT, POST, DELETE, PATCH, etc.\n" +
+            "3. **Request content** – show the request body only if required (in JSON format). If the operation doesn't require a request body, skip this field.\n\n" +
+            "Ensure that all HTTP methods, including less common ones (like POST or PATCH), are extracted. " +
+            "Do not miss any resource. Return the result in a clean and readable Markdown format with clear labels for each operation.\n" +
+            "Focus only on extracting the REST route, HTTP method, and request content (if applicable).\n\n" +
+            "Make sure no resources are overlooked, including special operations like migrations or batch processes." +
+            "If the URL or HTML page is missing, prompt the user to provide a valid reference that depicts such a Swagger page or documentation. " +
+            "If the analysis is successful, and asked by the user return a list of all detected resources. The required information should be extracted and presented in accordance with the provided structured response format. ");
 
         // Initialize structured responses
         var restDiscoveryReturnedOutputSchema = new
@@ -26,7 +41,6 @@ public class RestDiscoveryPromptHandler : BaseStatePromptHandler
             type = "object",
             properties = new
             {
-                serviceDomain = new { type = "string", description = "The service domain" },
                 restDiscoveryIsValid = new { type = "boolean", description = "Whether rest discovery was parsed" },
                 instructionsToUser = new { type = "string", description = "Instructions for the user in case the service domain is not included or successfully concluded." },
                 detectedResources = new
@@ -44,12 +58,12 @@ public class RestDiscoveryPromptHandler : BaseStatePromptHandler
                         },
                         required = new[] { "resourceDepiction", "httpMethod", "supportedJsonContent" }
                     }
-                },
-                required = new[] { "serviceDomain", "restDiscoveryIsValid", "instructionsToUser", "detectedResources" }
-            }
+                }
+            },
+            required = new[] { "restDiscoveryIsValid", "instructionsToUser", "detectedResources" }
         };
 
-        StructuredResponses.Add<ServiceInformationDomainOutput>(StatePromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryReturnedOutputKey,
+        StructuredResponses.Add<RestDiscoveryOutput>(StatePromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryReturnedOutputKey,
             JsonSerializer.Serialize(restDiscoveryReturnedOutputSchema));
     }
 }

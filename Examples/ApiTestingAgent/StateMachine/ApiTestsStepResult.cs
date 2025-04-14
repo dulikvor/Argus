@@ -4,6 +4,7 @@ namespace ApiTestingAgent.StateMachine
 {
     public class ApiTestsStepResult
     {
-        public IReadOnlyList<CoPilotChatResponseMessage> CoPilotChatResponseMessages;
+        public bool StepSuccess { get; set; }
+        public IReadOnlyList<CoPilotChatResponseMessage> CoPilotChatResponseMessages { get; set; }
     }
 }

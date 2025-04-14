@@ -39,9 +39,9 @@ namespace Argus.Contracts.OpenAI
 
         }
 
-        public CoPilotChatChoice(string content)
+        public CoPilotChatChoice(string content, bool isUnconcluded)
         {
-            FinishReason = ChatFinishReason.Stop.ToString().ToLower();
+            FinishReason = isUnconcluded ? null : ChatFinishReason.Stop.ToString().ToLower();
             Index = 0;
             Delta = new CoPilotChatChoiceDelta()
             {
@@ -102,13 +102,13 @@ namespace Argus.Contracts.OpenAI
             CreatedAt = streamingChatCompletionUpdate.CreatedAt.Ticks;
         }
 
-        public CoPilotChatResponseMessage(string content, ChatCompletion chatCompletion)
+        public CoPilotChatResponseMessage(string content, ChatCompletion chatCompletion, bool isUnconcluded)
         {
-            Choices = new List<CoPilotChatChoice> { new CoPilotChatChoice(content) };
+            Choices = new List<CoPilotChatChoice> { new CoPilotChatChoice(content, isUnconcluded) };
             Model = chatCompletion.Model;
             Id = chatCompletion.Id;
             SystemFingerprint = chatCompletion.SystemFingerprint;
-            Usage = chatCompletion.Usage != null
+            Usage = isUnconcluded == false && chatCompletion.Usage != null
                 ? new UsageResponse
                 {
                     PromptTokens = chatCompletion.Usage.InputTokenCount,

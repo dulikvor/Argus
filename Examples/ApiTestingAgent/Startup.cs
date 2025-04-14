@@ -27,6 +27,7 @@ public class Startup
             .AddScheme<GitHubAuthenticationSchemeOptions, GitHubAuthenticationHandler>(GitHubAuthenticationHandler.GitHubScheme, options => { });
 
         services.AddSingleton<IStatePromptHandler, ServiceInformationPromptHandler>();
+        services.AddSingleton<IStatePromptHandler, RestDiscoveryPromptHandler>();
         services.AddSingleton<IPromptHandlerFactory, PromptHandlerFactory>();
         services.AddSingleton<IApiTestService, ApiTestService>();
 

@@ -9,5 +9,6 @@ namespace Argus.Contracts.OpenAI
     public static class CopilotChatIcons
     {
         public const string Checkmark = "✅";
+        public const string Loading = "🔄";
     }
 }

@@ -17,8 +17,9 @@ namespace ApiTestingAgent.StateMachine.Steps
             _gitHubLLMQueryClient = gitHubLLMQueryClient;
         }
 
-        public override async Task<ApiTestsStepResult> HandleState(StateContext<ApiTestStateTransitions, ApiTestsStepInput, ApiTestsStepResult> context, ApiTestStateTransitions transition, ApiTestsStepInput stepInput)
+        public override async Task<(ApiTestsStepResult, ApiTestStateTransitions)> HandleState(StateContext<ApiTestStateTransitions, ApiTestsStepInput, ApiTestsStepResult> context, ApiTestStateTransitions transition, ApiTestsStepInput stepInput)
         {
+            ApiTestStateTransitions nextTransition = transition;
             if (transition == ApiTestStateTransitions.TestDescriptor)
             {
                 var concretePromptHandler = _promptHandlerFactory.GetPromptHandler(nameof(ServiceInformationPromptHandler));
@@ -32,16 +33,19 @@ namespace ApiTestingAgent.StateMachine.Steps
 
                 var (serviceInformationDomain, chatCompletion) = await _gitHubLLMQueryClient.Query<ServiceInformationDomainOutput>(coPilotChatRequestMessage, structuredOutput);
 
-                /*if (serviceInformationDomain.ServiceDomainIsValid)
+                if (serviceInformationDomain.ServiceDomainIsValid)
                 {
-                    context.SetState();
-                }*/
+                    context.SetState(new RestDiscoveryState(_gitHubLLMQueryClient, _promptHandlerFactory));
+                    nextTransition = ApiTestStateTransitions.RestDiscovery;
+                }
 
-                var prefix = serviceInformationDomain.ServiceDomainIsValid ? CopilotChatIcons.Checkmark : string.Empty;
-                return new ApiTestsStepResult
-                {
-                    CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>() { new CoPilotChatResponseMessage(prefix + serviceInformationDomain.InstructionsToUser, chatCompletion) }
-                };
+                return new (
+                    new ApiTestsStepResult()
+                    {
+                        StepSuccess = serviceInformationDomain.ServiceDomainIsValid,
+                        CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>() { new CoPilotChatResponseMessage(serviceInformationDomain.ToString(), chatCompletion, serviceInformationDomain.ServiceDomainIsValid) }
+                    },
+                    nextTransition);
             }
 
             context.OnNonSupportedTransition(transition);

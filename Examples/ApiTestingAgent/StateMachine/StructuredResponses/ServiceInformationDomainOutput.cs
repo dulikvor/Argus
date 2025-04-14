@@ -1,5 +1,7 @@
 using Argus.Common.StructuredResponses;
+using Argus.Contracts.OpenAI;
 using System.Text.Json.Serialization;
+using static ApiTestingAgent.StateMachine.StatePromptsConstants;
 
 namespace ApiTestingAgent.StateMachine.StructuredResponses;
 public class ServiceInformationDomainOutput
@@ -15,4 +17,10 @@ public class ServiceInformationDomainOutput
     [JsonPropertyName("instructionsToUser")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public string InstructionsToUser { get; set; }
+
+    public override string ToString()
+    {
+        var prefix = ServiceDomainIsValid ? CopilotChatIcons.Checkmark : string.Empty;
+        return $"{prefix} {InstructionsToUser}\n\n";
+    }
 }

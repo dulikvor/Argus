@@ -16,8 +16,8 @@ public class ServiceInformationPromptHandler : BaseStatePromptHandler
     {
         // Initialize prompts
         Prompts.Add(StatePromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey,
-            "Extract the user service domain. If missing, instruct the user to provide the domain. " +
-                    "For example, a service domain usually looks like 'example.com'.");
+        "Extract the user service domain. If missing, instruct the user to provide the domain. " +
+        "For example, a service domain usually looks like 'example.com'. If the domain is already known, return it to the user.");
 
         // Initialize structured responses
         var serviceInformationDomainReturnedOutputSchema = new

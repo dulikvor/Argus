@@ -3,7 +3,7 @@ using Argus.Contracts.OpenAI;
 using System.Text.Json.Serialization;
 using static ApiTestingAgent.StateMachine.StatePromptsConstants;
 
-namespace ApiTestingAgent.StateMachine.StructuredResponses;
+namespace ApiTestingAgent.StructuredResponses;
 public class ServiceInformationDomainOutput
 {
     [JsonPropertyName("serviceDomain")]

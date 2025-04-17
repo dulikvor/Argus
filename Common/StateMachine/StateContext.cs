@@ -11,9 +11,14 @@ public class StateContext<TTransition, TStepInput, TStepResult> where TTransitio
         _currentState = startingState;
     }
 
-    public async Task<(TStepResult, TTransition)> HandleState(TTransition commandType, TStepInput stepInput)
+    public async Task<(TStepResult, TTransition)> HandleState(Session<TTransition> session, TTransition commandType, TStepInput stepInput)
     {
-        return await _currentState.HandleState(this, commandType, stepInput);
+        return await _currentState.HandleState(this, session, commandType, stepInput);
+    }
+
+    public string GetStateName()
+    {
+        _currentState.
     }
 
     public void SetState(State<TTransition, TStepInput, TStepResult> nextState)

@@ -1,8 +1,8 @@
 using Argus.Common.StructuredResponses;
 
-namespace Argus.Common.PromptHandlers;
+namespace Argus.Common.PromptDescriptors;
 
-public abstract class BaseStatePromptHandler : IStatePromptHandler
+public abstract class BaseStatePromptDescriptor : IStatePromptDescriptor
 {
     protected readonly Dictionary<string, string> Prompts = new();
     protected readonly StructuredResponsesDictionary StructuredResponses = new();
@@ -27,5 +27,5 @@ public abstract class BaseStatePromptHandler : IStatePromptHandler
 
     protected abstract void Initialize();
 
-    public abstract string HandlerType { get; }
+    public abstract string DescriptorType { get; }
 }

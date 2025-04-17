@@ -2,6 +2,14 @@
 {
     public static class StatePromptsConstants
     {
+        public static class ApiTests
+        {
+            public static class Keys
+            {
+                public const string StateMachineKey = $"{nameof(StateMachineKey)}";
+            }
+        }
+
         public static class ServiceInformation
         {
             public static class Keys

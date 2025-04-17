@@ -3,6 +3,7 @@
     public enum ApiTestStateTransitions
     {
         TestDescriptor,
-        RestDiscovery
+        RestDiscovery,
+        RawContentGet
     }
 }

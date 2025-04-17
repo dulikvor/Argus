@@ -1,13 +1,14 @@
-using ApiTestingAgent.StateMachine.StructuredResponses;
-using Argus.Common.PromptHandlers;
+using ApiTestingAgent.StateMachine;
+using ApiTestingAgent.StructuredResponses;
+using Argus.Common.PromptDescriptors;
 using System.Text.Json;
 
-namespace ApiTestingAgent.StateMachine.PromptHandlers;
-public class ServiceInformationPromptHandler : BaseStatePromptHandler
+namespace ApiTestingAgent.PromptDescriptor;
+public class ServiceInformationPromptDescriptor : BaseStatePromptDescriptor
 {
-    public override string HandlerType => nameof(ServiceInformationPromptHandler);
+    public override string DescriptorType => nameof(ServiceInformationPromptDescriptor);
 
-    public ServiceInformationPromptHandler()
+    public ServiceInformationPromptDescriptor()
     {
         Initialize();
     }

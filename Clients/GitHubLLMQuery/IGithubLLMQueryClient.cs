@@ -6,7 +6,7 @@ namespace Argus.Clients.GitHubLLMQuery
     public interface IGitHubLLMQueryClient
     {
         public Task<IReadOnlyList<CoPilotChatResponseMessage>> Query(CoPilotChatRequestMessage coPilotChatRequestMessage);
-        public Task<(TResponse, ChatCompletion)> Query<TResponse>(CoPilotChatRequestMessage coPilotChatRequestMessage, OpenAIStructuredOutput structuredOutput) where TResponse : class;
+        public Task<ChatCompletionStructuredResponse<TResponse>> Query<TResponse>(CoPilotChatRequestMessage coPilotChatRequestMessage, OpenAIStructuredOutput structuredOutput, IList<ChatTool> tools) where TResponse : class;
 
     }
 }

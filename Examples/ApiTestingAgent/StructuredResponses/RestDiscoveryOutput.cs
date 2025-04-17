@@ -1,8 +1,6 @@
-using Argus.Contracts.OpenAI;
 using System.Text.Json.Serialization;
-using static ApiTestingAgent.StateMachine.StatePromptsConstants;
 
-namespace ApiTestingAgent.StateMachine.StructuredResponses;
+namespace ApiTestingAgent.StructuredResponses;
 
 public class RestDiscoveryOutput
 {
@@ -25,7 +23,7 @@ public class RestDiscoveryOutput
             return $"{InstructionsToUser}\n\n";
         }
 
-        var formattedMessage = string.Empty;
+        var formattedMessage = $"{InstructionsToUser}\n\n";
         for (int i = 0; i < DetectedResources.Count; i++)
         {
             var resource = DetectedResources[i];

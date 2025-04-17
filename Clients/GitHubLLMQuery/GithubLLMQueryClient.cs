@@ -55,7 +55,7 @@ namespace Argus.Clients.GitHubLLMQuery
             return result;
         }
 
-        public async Task<(TResponse, ChatCompletion)> Query<TResponse>(CoPilotChatRequestMessage coPilotChatRequestMessage, OpenAIStructuredOutput structuredOutput) where TResponse : class
+        public async Task<ChatCompletionStructuredResponse<TResponse>> Query<TResponse>(CoPilotChatRequestMessage coPilotChatRequestMessage, OpenAIStructuredOutput structuredOutput, IList<ChatTool> tools) where TResponse : class
         {
             ArgumentValidationHelper.Ensure.NotNull(coPilotChatRequestMessage.Model, "Model");
             ArgumentValidationHelper.Ensure.NotNull(structuredOutput, "StructuredOutput");
@@ -66,15 +66,21 @@ namespace Argus.Clients.GitHubLLMQuery
 
             ChatCompletionOptions chatCompletionOptions = new ChatCompletionOptions
             {
-                ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(structuredOutput.JsonSchemaFormatName, structuredOutput.JsonSchema)
+                ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(structuredOutput.JsonSchemaFormatName, structuredOutput.JsonSchema),
+
             };
 
+            foreach (var tool in tools ?? new List<ChatTool>())
+            {
+                chatCompletionOptions.Tools.Add(tool);
+            }
+
             var chatCompletion = await chatClient.CompleteChatAsync(
-                    coPilotChatRequestMessage.Messages.Select(message => new UserChatMessage(message.Content)), chatCompletionOptions);
+                    coPilotChatRequestMessage.Messages.Select(message => message.Role == ChatMessageRole.User 
+                        ? (ChatMessage)new UserChatMessage(message.Content) 
+                        : (ChatMessage)new SystemChatMessage(message.Content)), chatCompletionOptions);
 
-
-            // Replace the problematic line with the following:
-            return new(JsonSerializer.Deserialize<TResponse>(chatCompletion.Value.Content.First().Text), chatCompletion.Value);
+            return new ChatCompletionStructuredResponse<TResponse>(chatCompletion.Value);
         }
 
         private OpenAIClient GetOrCreateClient(string userName)

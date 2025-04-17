@@ -26,6 +26,22 @@ namespace Argus.Contracts.OpenAI
             };
         }
 
+        public CoPilotChatRequestMessage GetUserLast()
+        {
+            var userMessage = Messages?.FindLast((m => m.Role == ChatMessageRole.User));
+            return new CoPilotChatRequestMessage
+            {
+                Model = Model,
+                Messages = userMessage != null
+                ? new List<CopilotChatMessage> { new CopilotChatMessage
+                {
+                    Role = userMessage.Role,
+                    Content = userMessage.Content
+                }}
+                : null
+            };
+        }
+
         public void AddSystemMessage(string content)
         {
             var systemMessage = new CopilotChatMessage
@@ -35,6 +51,17 @@ namespace Argus.Contracts.OpenAI
             };
             Messages = Messages ?? new List<CopilotChatMessage>();
             Messages.Add(systemMessage);
+        }
+
+        public void AddUserMessage(string content)
+        {
+            var userMessage = new CopilotChatMessage
+            {
+                Role = ChatMessageRole.User,
+                Content = content
+            };
+            Messages = Messages ?? new List<CopilotChatMessage>();
+            Messages.Add(userMessage);
         }
     }
 }

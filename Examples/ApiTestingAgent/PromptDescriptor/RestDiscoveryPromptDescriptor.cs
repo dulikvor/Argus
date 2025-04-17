@@ -1,20 +1,14 @@
-using ApiTestingAgent.StateMachine.StructuredResponses;
-using Argus.Common.PromptHandlers;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Hosting;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Resources;
+using ApiTestingAgent.StateMachine;
+using ApiTestingAgent.StructuredResponses;
+using Argus.Common.PromptDescriptors;
 using System.Text.Json;
-using System.Threading.Tasks;
 
-namespace ApiTestingAgent.StateMachine.PromptHandlers;
-public class RestDiscoveryPromptHandler : BaseStatePromptHandler
+namespace ApiTestingAgent.PromptDescriptor;
+public class RestDiscoveryPromptDescriptor : BaseStatePromptDescriptor
 {
-    public override string HandlerType => nameof(RestDiscoveryPromptHandler);
+    public override string DescriptorType => nameof(RestDiscoveryPromptDescriptor);
 
-    public RestDiscoveryPromptHandler()
+    public RestDiscoveryPromptDescriptor()
     {
         Initialize();
     }
@@ -27,12 +21,11 @@ public class RestDiscoveryPromptHandler : BaseStatePromptHandler
             "Your task is to analyze all the operations listed under the \"paths\" section and extract the following for each operation:\n\n" +
             "1. **Rest route** – the full API endpoint URL (with placeholders like {subscriptionId}, {resourceGroupName}, {workspaceName}, etc.).\n" +
             "2. **HTTP method** – e.g., GET, PUT, POST, DELETE, PATCH, etc.\n" +
-            "3. **Request content** – show the request body only if required (in JSON format). If the operation doesn't require a request body, skip this field.\n\n" +
-            "Ensure that all HTTP methods, including less common ones (like POST or PATCH), are extracted. " +
-            "Do not miss any resource. Return the result in a clean and readable Markdown format with clear labels for each operation.\n" +
+            "3. **Request content** – show the request body only if required (in JSON format) show it in full, every supported property. If the operation doesn't require a request body, skip this field.\n\n" +
+            "Ensure that all HTTP methods, including less common ones (like `POST` or `PATCH`), are extracted. Do not miss any resource. Return the result in a clean and readable Markdown format with clear labels for each operation.\n" +
             "Focus only on extracting the REST route, HTTP method, and request content (if applicable).\n\n" +
-            "Make sure no resources are overlooked, including special operations like migrations or batch processes." +
-            "If the URL or HTML page is missing, prompt the user to provide a valid reference that depicts such a Swagger page or documentation. " +
+            "Make sure no resources are overlooked, including special operations like migrations, batch processes, and any other lesser-known operations. Focus on operations under the `paths` section of the specification." +
+            "If the URL or HTML page is missing, prompt the user to provide a valid reference that depicts such a Swagger page or documentation." +
             "If the analysis is successful, and asked by the user return a list of all detected resources. The required information should be extracted and presented in accordance with the provided structured response format. ");
 
         // Initialize structured responses

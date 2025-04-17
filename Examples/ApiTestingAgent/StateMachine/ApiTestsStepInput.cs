@@ -5,5 +5,6 @@ namespace ApiTestingAgent.StateMachine
     public class ApiTestsStepInput
     {
         public CoPilotChatRequestMessage CoPilotChatRequestMessage { get; set; }
+        public ApiTestsStepResult PreviousStepResult { get; set; }
     }
 }

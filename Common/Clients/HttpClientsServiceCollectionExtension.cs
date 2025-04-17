@@ -7,20 +7,24 @@ namespace Argus.Common.Clients
 {
     public static class HttpClientsServiceCollectionExtension
     {
-        public static IServiceCollection AddServiceHttpClient<TIClient, TClientImplementation, TEndpoint>(this IServiceCollection services, Aliases.TokenCreator tokenCreator)
+        public static IServiceCollection AddServiceHttpClient<TIClient, TClientImplementation, TEndpoint>(this IServiceCollection services, Aliases.TokenCreator tokenCreator = null)
             where TIClient : class
             where TClientImplementation : class, TIClient
             where TEndpoint : ServiceHttpClientOptions, new()
         {
-            services.AddHttpClient<TIClient, TClientImplementation>(
+            var httpClientBuilder = services.AddHttpClient<TIClient, TClientImplementation>(
                 typeof(TIClient).Name,
                 (provider, client) =>
                 {
                     var options = provider.GetRequiredService<IOptions<TEndpoint>>().Value;
                     client.BaseAddress = options.Endpoint;
                 })
-                .HttpClientConfiguration()
-                .AddHttpMessageHandler(provider => new HttpClientAuthenticationHandler(tokenCreator));
+                .HttpClientConfiguration();
+
+            if(tokenCreator != null)
+            {
+                httpClientBuilder.AddHttpMessageHandler(provider => new HttpClientAuthenticationHandler(tokenCreator));
+            }
 
             return services;
         }

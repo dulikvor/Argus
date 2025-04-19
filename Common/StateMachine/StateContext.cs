@@ -1,22 +1,40 @@
 ﻿namespace Argus.Common.StateMachine;
 
-public class StateContext<TEdge, TArg1, TArg2, TResult> where TEdge : Enum
+public class StateContext<TTransition, TStepInput, TStepResult> 
+    where TTransition : Enum
+    where TStepInput : StepInput
+    where TStepResult : StepResult
 {
-    private State<TEdge, TArg1, TArg2, TResult> _currentState;
+    private State<TTransition, TStepInput, TStepResult> _currentState;
 
-    public StateContext(State<TEdge, TArg1, TArg2, TResult> startingState)
+    public StateContext(State<TTransition, TStepInput, TStepResult> startingState)
     {
         _currentState = startingState;
     }
 
-    public TResult HandleState(TEdge commandType, TArg1 argument1, TArg2 argument2)
+    public async Task<(TStepResult, TTransition)> HandleState(Session<TTransition, TStepInput, TStepResult> session, TTransition commandType, TStepInput stepInput)
     {
-        return _currentState.HandleState(this, commandType, argument1, argument2);
+        return await _currentState.HandleState(this, session, commandType, stepInput);
     }
 
-    public void SetState(State<TEdge, TArg1, TArg2, TResult> nextState)
+    public void SetState(State<TTransition, TStepInput, TStepResult> nextState)
     {
         _currentState = nextState;
+    }
+
+    public State<TTransition, TStepInput, TStepResult> GetCurrentState()
+    {
+        return _currentState;
+    }
+
+    public bool IsEnd()
+    {
+        return _currentState is EndState<TTransition, TStepInput>;
+    }
+
+    public void OnNonSupportedTransition(TTransition transition)
+    {
+        throw new NotSupportedException($"The transition '{transition}' is not supported in the current state.");
     }
 
 }

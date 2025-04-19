@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using OpenAI.Chat;
+using System.Text.Json.Serialization;
 
 namespace Argus.Contracts.OpenAI
 {
@@ -10,6 +11,57 @@ namespace Argus.Contracts.OpenAI
 
         [JsonPropertyName("messages")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public CopilotChatMessage[] Messages { get; set; }
+        public List<CopilotChatMessage> Messages { get; set; }
+
+        public CoPilotChatRequestMessage Clone()
+        {
+            return new CoPilotChatRequestMessage
+            {
+                Model = Model,
+                Messages = Messages?.Select(m => new CopilotChatMessage
+                {
+                    Role = m.Role,
+                    Content = m.Content
+                }).ToList()
+            };
+        }
+
+        public CoPilotChatRequestMessage GetUserLast()
+        {
+            var userMessage = Messages?.FindLast((m => m.Role == ChatMessageRole.User));
+            return new CoPilotChatRequestMessage
+            {
+                Model = Model,
+                Messages = userMessage != null
+                ? new List<CopilotChatMessage> { new CopilotChatMessage
+                {
+                    Role = userMessage.Role,
+                    Content = userMessage.Content
+                }}
+                : null
+            };
+        }
+
+        public void AddSystemMessage(string content)
+        {
+            var systemMessage = new CopilotChatMessage
+            {
+                Role = ChatMessageRole.System,
+                Content = content
+            };
+            Messages = Messages ?? new List<CopilotChatMessage>();
+            Messages.Add(systemMessage);
+        }
+
+        public void AddUserMessage(string content)
+        {
+            var userMessage = new CopilotChatMessage
+            {
+                Role = ChatMessageRole.User,
+                Content = content
+            };
+            Messages = Messages ?? new List<CopilotChatMessage>();
+            Messages.Add(userMessage);
+        }
     }
 }

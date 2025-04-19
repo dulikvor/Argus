@@ -1,7 +1,14 @@
+using ApiTestingAgent.PromptDescriptor;
+using ApiTestingAgent.Services;
 using Argus.Clients.GitHubAuthentication;
 using Argus.Clients.GitHubLLMQuery;
+using Argus.Clients.GitHubRawContentCdnClient;
+using Argus.Common.Builtin.Functions;
+using Argus.Common.Builtin.PromptDescriptor;
 using Argus.Common.Clients;
+using Argus.Common.Functions;
 using Argus.Common.GitHubAuthentication;
+using Argus.Common.PromptDescriptors;
 using Argus.Common.Web;
 using Argus.Data;
 
@@ -23,10 +30,21 @@ public class Startup
         services.AddAuthentication(GitHubAuthenticationHandler.GitHubScheme)
             .AddScheme<GitHubAuthenticationSchemeOptions, GitHubAuthenticationHandler>(GitHubAuthenticationHandler.GitHubScheme, options => { });
 
+        services.AddSingleton<IFunctionDescriptorFactory, FunctionDescriptorFactory>();
+        services.AddSingleton<IFunctionDescriptor, GetGitHubRawContentFunctionDescriptor>();
+
+        services.AddSingleton<IStatePromptDescriptor, EndPromptDescriptor>();
+        services.AddSingleton<IStatePromptDescriptor, ApiTestsPromptDescriptor>();
+        services.AddSingleton<IStatePromptDescriptor, ServiceInformationPromptDescriptor>();
+        services.AddSingleton<IStatePromptDescriptor, RestDiscoveryPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptorFactory, PromptDescriptorFactory>();
+        services.AddSingleton<IApiTestService, ApiTestService>();
+
         services.AddSingleton<IResponseStreamWriter<ServerSentEventsStreamWriter>, ServerSentEventsStreamWriter>();
 
         services.AddSingleton<ITypedHttpServiceClientFactory, TypedHttpServiceClientFactory>();
         services.AddServiceHttpClient<IGitHubAuthenticationClient, GitHubAuthenticationClient, GitHubAuthenticationClientOptions>(GitHubAuthenticationClient.TokenCreator);
+        services.AddServiceHttpClient<IGitHubRawContentCdnClient, GitHubRawContentCdnClient, GitHubRawContentCdnClientOptions>();
         services.AddManagedServiceClient<IGitHubLLMQueryClient, GitHubLLMQueryClient>();
     }
 
@@ -57,6 +75,10 @@ public class Startup
     {
         services.AddOptions<GitHubAuthenticationClientOptions>()
             .Bind(_configuration.GetSection(nameof(ServiceConfiguration.GitHubAuthenticationClient)))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddOptions<GitHubRawContentCdnClientOptions>()
+            .Bind(_configuration.GetSection(nameof(ServiceConfiguration.GitHubRawContentCdnClient)))
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddOptions<GitHubLLMQueryClientOptions>()

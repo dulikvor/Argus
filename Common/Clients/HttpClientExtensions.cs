@@ -8,7 +8,7 @@ namespace Argus.Common.Clients
 {
     public static class HttpClientExtensions
     {
-        public static async Task<TResponse?> GetAsync<TResponse>(
+        public static async Task<TResponse> GetAsync<TResponse>(
             this HttpClient httpClient,
             string uri,
             Dictionary<string, string> headers = null,
@@ -38,12 +38,20 @@ namespace Argus.Common.Clients
                     $"HttpClient: Response status code does not indicate success - {(int)response.StatusCode} ({response.ReasonPhrase}){detailedErrorMessage}.");
             }
 
-            if (response.Content != null && response.Content.Headers.ContentType?.MediaType == MediaTypeNames.Application.Json)
+            if (response.Content != null)
             {
-                return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken: cancellationToken);
+                var contentType = response.Content.Headers.ContentType?.MediaType;
+                if (contentType == MediaTypeNames.Application.Json)
+                {
+                    return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken: cancellationToken);
+                }
+                else if (contentType == MediaTypeNames.Text.Plain && typeof(TResponse) == typeof(string))
+                {
+                    return (TResponse)(object)await response.Content.ReadAsStringAsync(cancellationToken);
+                }
             }
 
-            return default(TResponse?);
+            return default(TResponse);
         }
 
         public static async Task<TResponse?> PostAsync<TResponse, TContent>(

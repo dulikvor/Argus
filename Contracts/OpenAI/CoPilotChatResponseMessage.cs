@@ -1,4 +1,5 @@
 ﻿using OpenAI.Chat;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
 namespace Argus.Contracts.OpenAI
@@ -38,6 +39,17 @@ namespace Argus.Contracts.OpenAI
 
         }
 
+        public CoPilotChatChoice(string content, bool isUnconcluded)
+        {
+            FinishReason = isUnconcluded ? null : ChatFinishReason.Stop.ToString().ToLower();
+            Index = 0;
+            Delta = new CoPilotChatChoiceDelta()
+            {
+                Role = ChatMessageRole.Assistant,
+                Content = content
+            };
+        }
+
         [JsonPropertyName("index")]
         public int Index { get; }
 
@@ -75,7 +87,7 @@ namespace Argus.Contracts.OpenAI
     {
         public CoPilotChatResponseMessage(StreamingChatCompletionUpdate streamingChatCompletionUpdate)
         {
-            Choices = new List<CoPilotChatChoice> { new CoPilotChatChoice(streamingChatCompletionUpdate) };//choice != null ? new List<CoPilotChatChoice> { choice } : new List<CoPilotChatChoice>();
+            Choices = new List<CoPilotChatChoice> { new CoPilotChatChoice(streamingChatCompletionUpdate) };
             Model = streamingChatCompletionUpdate.Model;
             Id = streamingChatCompletionUpdate.CompletionId;
             SystemFingerprint = streamingChatCompletionUpdate.SystemFingerprint;
@@ -88,6 +100,23 @@ namespace Argus.Contracts.OpenAI
                 }
                 : null;
             CreatedAt = streamingChatCompletionUpdate.CreatedAt.Ticks;
+        }
+
+        public CoPilotChatResponseMessage(string content, ChatCompletion chatCompletion, bool isUnconcluded)
+        {
+            Choices = new List<CoPilotChatChoice> { new CoPilotChatChoice(content, isUnconcluded) };
+            Model = chatCompletion?.Model;
+            Id = chatCompletion?.Id;
+            SystemFingerprint = chatCompletion?.SystemFingerprint;
+            Usage = isUnconcluded == false && chatCompletion?.Usage != null
+                ? new UsageResponse
+                {
+                    PromptTokens = chatCompletion.Usage.InputTokenCount,
+                    CompletionTokens = chatCompletion.Usage.OutputTokenCount,
+                    TotalTokens = chatCompletion.Usage.TotalTokenCount
+                }
+                : null;
+            CreatedAt = chatCompletion?.CreatedAt.Ticks ?? default;
         }
 
         public CoPilotChatResponseMessage() { }

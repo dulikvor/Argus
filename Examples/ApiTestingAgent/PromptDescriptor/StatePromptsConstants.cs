@@ -1,7 +1,14 @@
-﻿namespace ApiTestingAgent.StateMachine
+﻿using Argus.Common.Functions;
+
+namespace ApiTestingAgent.PromptDescriptor
 {
     public static class StatePromptsConstants
     {
+        public static class SessionResult
+        {
+            public const string SessionResultFunctionFormat = "Tool {0} result)";
+        }
+
         public static class ApiTests
         {
             public static class Keys

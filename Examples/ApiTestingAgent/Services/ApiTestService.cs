@@ -9,8 +9,7 @@ using Argus.Common.StateMachine;
 using Argus.Common.Web;
 using Argus.Contracts.OpenAI;
 using Argus.Data;
-using OpenAI.Chat;
-using ApiTestsStateContext = Argus.Common.StateMachine.StateContext<ApiTestingAgent.StateMachine.ApiTestStateTransitions, ApiTestingAgent.StateMachine.ApiTestsStepInput, ApiTestingAgent.StateMachine.ApiTestsStepResult>;
+using ApiTestsStateContext = Argus.Common.StateMachine.StateContext<ApiTestingAgent.StateMachine.ApiTestStateTransitions, Argus.Common.StateMachine.StepInput, Argus.Common.StateMachine.StepResult>;
 
 namespace ApiTestingAgent.Services
 {
@@ -21,7 +20,12 @@ namespace ApiTestingAgent.Services
         private readonly IFunctionDescriptorFactory _functionDescriptorFactory;
         private readonly IResponseStreamWriter<ServerSentEventsStreamWriter> _responseStreamWriter;
 
-        public ApiTestService(IGitHubLLMQueryClient gitHubLLMQueryClient, IPromptDescriptorFactory promptDescriptorFactory, IFunctionDescriptorFactory functionDescriptorFactory, IResponseStreamWriter<ServerSentEventsStreamWriter> responseStreamWriter)
+        public ApiTestService(
+            IServiceProvider serviceProvider,
+            IGitHubLLMQueryClient gitHubLLMQueryClient, 
+            IPromptDescriptorFactory promptDescriptorFactory, 
+            IFunctionDescriptorFactory functionDescriptorFactory, 
+            IResponseStreamWriter<ServerSentEventsStreamWriter> responseStreamWriter)
         {
             _gitHubLLMQueryClient = gitHubLLMQueryClient;
             _promptDescriptorFactory = promptDescriptorFactory;
@@ -31,11 +35,22 @@ namespace ApiTestingAgent.Services
 
         public async Task InvokeNext(HttpContext httpContext, CoPilotChatRequestMessage coPilotChatRequestMessage)
         {
-            var session = SessionStore<ApiTestStateTransitions>.GetSessions((string)CallContext.GetData(ServiceConstants.Authentication.UserNameKey));
-            var stateContext = new ApiTestsStateContext(new ServiceInformationState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
+            var session = SessionStore<ApiTestStateTransitions, StepInput, StepResult>.GetSessions((string)CallContext.GetData(ServiceConstants.Authentication.UserNameKey));
 
-            ApiTestsStepResult result = default;
-            ApiTestStateTransitions transition = ApiTestStateTransitions.TestDescriptor;
+            ApiTestStateTransitions transition = default;
+            ApiTestsStateContext stateContext = default;
+            if (session.CurrentStep != null)
+            {
+                stateContext = new ApiTestsStateContext(session.CurrentStep);
+                transition = session.CurrentTransition;
+            }
+            else
+            {
+                stateContext = new ApiTestsStateContext(new ServiceInformationState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
+                transition = ApiTestStateTransitions.TestDescriptor;
+            }
+
+            StepResult result = default;
             do
             {
                 var filteredCoPilotChatRequestMessage = coPilotChatRequestMessage.GetUserLast();
@@ -43,10 +58,11 @@ namespace ApiTestingAgent.Services
                 var prompt = _promptDescriptorFactory.GetPromptDescriptor(nameof(ApiTestsPromptDescriptor))
                     .GetPrompt(StatePromptsConstants.ApiTests.Keys.StateMachineKey);
                 filteredCoPilotChatRequestMessage.AddSystemMessage(prompt);
+
+                session.SetCurrentStep(stateContext.GetCurrentState(), transition);
                 filteredCoPilotChatRequestMessage.AddSystemMessage(session.ToString());
 
-                session.SetCurrentStep(stateContext.GetStateName(), transition);
-                (result, transition) = await stateContext.HandleState(session, transition, new ApiTestsStepInput
+                (result, transition) = await stateContext.HandleState(session, transition, new StepInput
                 {
                     CoPilotChatRequestMessage = filteredCoPilotChatRequestMessage,
                     PreviousStepResult = result

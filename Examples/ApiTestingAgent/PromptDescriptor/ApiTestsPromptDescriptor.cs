@@ -1,10 +1,9 @@
-using ApiTestingAgent.StateMachine;
 using Argus.Common.PromptDescriptors;
 
 namespace ApiTestingAgent.PromptDescriptor;
 public class ApiTestsPromptDescriptor : BaseStatePromptDescriptor
 {
-    public override string DescriptorType => nameof(ServiceInformationPromptDescriptor);
+    public override string DescriptorType => nameof(ApiTestsPromptDescriptor);
 
     public ApiTestsPromptDescriptor()
     {

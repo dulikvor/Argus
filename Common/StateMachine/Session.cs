@@ -2,10 +2,13 @@
 
 using StepResultKey = (string, string);
 
-public class Session<TStateTransitions> where TStateTransitions : Enum
+public class Session<TTransition, TStepInput, TStepResult>
+    where TTransition : Enum
+    where TStepInput : StepInput
+    where TStepResult : StepResult
 {
-    public TStateTransitions CurrentTransition { get; private set; }
-    public string CurrentStep { get; private set; }
+    public TTransition CurrentTransition { get; private set; }
+    public State<TTransition, TStepInput, TStepResult> CurrentStep { get; private set; }
 
     Dictionary<StepResultKey, object> StepResult { get; } = new Dictionary<StepResultKey, object>();
 
@@ -14,7 +17,7 @@ public class Session<TStateTransitions> where TStateTransitions : Enum
         StepResult[stepResultKey] = value;
     }
 
-    public void SetCurrentStep(string step, TStateTransitions transition)
+    public void SetCurrentStep(State<TTransition, TStepInput, TStepResult> step, TTransition transition)
     {
         CurrentStep = step;
         CurrentTransition = transition;
@@ -23,7 +26,7 @@ public class Session<TStateTransitions> where TStateTransitions : Enum
     public override string ToString()
     {
         var stepResults = string.Join(", ", StepResult.Select(kvp => $"[({kvp.Key.Item1}, {kvp.Key.Item2}): {kvp.Value}]"));
-        return $"Current Step: {CurrentStep}, Current Transition: {CurrentTransition}, Step Results: {stepResults}";
+        return $"Current Step: {CurrentStep.GetName()}, Current Transition: {CurrentTransition.ToString()}, Step Results: {stepResults}";
     }
 }
 

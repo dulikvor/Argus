@@ -1,8 +1,9 @@
-﻿using ApiTestingAgent.StateMachine.Steps;
+﻿namespace Argus.Common.StateMachine;
 
-namespace Argus.Common.StateMachine;
-
-public class StateContext<TTransition, TStepInput, TStepResult> where TTransition : Enum
+public class StateContext<TTransition, TStepInput, TStepResult> 
+    where TTransition : Enum
+    where TStepInput : StepInput
+    where TStepResult : StepResult
 {
     private State<TTransition, TStepInput, TStepResult> _currentState;
 
@@ -11,14 +12,9 @@ public class StateContext<TTransition, TStepInput, TStepResult> where TTransitio
         _currentState = startingState;
     }
 
-    public async Task<(TStepResult, TTransition)> HandleState(Session<TTransition> session, TTransition commandType, TStepInput stepInput)
+    public async Task<(TStepResult, TTransition)> HandleState(Session<TTransition, TStepInput, TStepResult> session, TTransition commandType, TStepInput stepInput)
     {
         return await _currentState.HandleState(this, session, commandType, stepInput);
-    }
-
-    public string GetStateName()
-    {
-        _currentState.
     }
 
     public void SetState(State<TTransition, TStepInput, TStepResult> nextState)
@@ -26,9 +22,14 @@ public class StateContext<TTransition, TStepInput, TStepResult> where TTransitio
         _currentState = nextState;
     }
 
+    public State<TTransition, TStepInput, TStepResult> GetCurrentState()
+    {
+        return _currentState;
+    }
+
     public bool IsEnd()
     {
-        return _currentState is EndState<TTransition, TStepInput, TStepResult>;
+        return _currentState is EndState<TTransition, TStepInput>;
     }
 
     public void OnNonSupportedTransition(TTransition transition)

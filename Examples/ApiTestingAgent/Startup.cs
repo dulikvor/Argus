@@ -4,6 +4,7 @@ using Argus.Clients.GitHubAuthentication;
 using Argus.Clients.GitHubLLMQuery;
 using Argus.Clients.GitHubRawContentCdnClient;
 using Argus.Common.Builtin.Functions;
+using Argus.Common.Builtin.PromptDescriptor;
 using Argus.Common.Clients;
 using Argus.Common.Functions;
 using Argus.Common.GitHubAuthentication;
@@ -32,6 +33,8 @@ public class Startup
         services.AddSingleton<IFunctionDescriptorFactory, FunctionDescriptorFactory>();
         services.AddSingleton<IFunctionDescriptor, GetGitHubRawContentFunctionDescriptor>();
 
+        services.AddSingleton<IStatePromptDescriptor, EndPromptDescriptor>();
+        services.AddSingleton<IStatePromptDescriptor, ApiTestsPromptDescriptor>();
         services.AddSingleton<IStatePromptDescriptor, ServiceInformationPromptDescriptor>();
         services.AddSingleton<IStatePromptDescriptor, RestDiscoveryPromptDescriptor>();
         services.AddSingleton<IPromptDescriptorFactory, PromptDescriptorFactory>();

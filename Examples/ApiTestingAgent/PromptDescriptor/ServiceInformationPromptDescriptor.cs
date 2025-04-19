@@ -1,4 +1,3 @@
-using ApiTestingAgent.StateMachine;
 using ApiTestingAgent.StructuredResponses;
 using Argus.Common.PromptDescriptors;
 using System.Text.Json;

@@ -3,7 +3,10 @@ using Argus.Common.PromptDescriptors;
 
 namespace Argus.Common.StateMachine;
 
-public abstract class State<TTransition, TStepInput, TStepResult> where TTransition : Enum
+public abstract class State<TTransition, TStepInput, TStepResult>
+    where TTransition : Enum
+    where TStepInput : StepInput
+    where TStepResult : StepResult
 {
     protected readonly IPromptDescriptorFactory _promptDescriptorFactory;
     protected readonly IFunctionDescriptorFactory _functionDescriptorFactory;
@@ -16,7 +19,7 @@ public abstract class State<TTransition, TStepInput, TStepResult> where TTransit
 
     public virtual string GetName() => throw new InvalidOperationException();
 
-    public virtual Task<(TStepResult, TTransition)> HandleState(StateContext<TTransition, TStepInput, TStepResult> context, Session<TTransition> session, TTransition command, TStepInput stepInput)
+    public virtual Task<(TStepResult, TTransition)> HandleState(StateContext<TTransition, TStepInput, TStepResult> context, Session<TTransition, TStepInput, TStepResult> session, TTransition command, TStepInput stepInput)
     {
         throw new InvalidOperationException();
     }

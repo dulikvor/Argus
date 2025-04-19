@@ -54,4 +54,9 @@ public class DetectedResource
     [JsonPropertyName("supportedJsonContent")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public string SupportedJsonContent { get; set; }
+
+    public override string ToString()
+    {
+        return $"ResourceDepiction: {ResourceDepiction}, HttpMethod: {HttpMethod}, SupportedJsonContent: {SupportedJsonContent}";
+    }
 }

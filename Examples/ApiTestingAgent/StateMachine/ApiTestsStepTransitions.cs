@@ -4,6 +4,7 @@
     {
         TestDescriptor,
         RestDiscovery,
-        RawContentGet
+        RawContentGet,
+        Any
     }
 }

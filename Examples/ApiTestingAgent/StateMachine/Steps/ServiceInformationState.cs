@@ -8,7 +8,7 @@ using Argus.Contracts.OpenAI;
 
 namespace ApiTestingAgent.StateMachine.Steps
 {
-    public class ServiceInformationState : State<ApiTestStateTransitions, ApiTestsStepInput, ApiTestsStepResult>
+    public class ServiceInformationState : State<ApiTestStateTransitions, StepInput, StepResult>
     {
         private IGitHubLLMQueryClient _gitHubLLMQueryClient;
 
@@ -20,11 +20,11 @@ namespace ApiTestingAgent.StateMachine.Steps
             _gitHubLLMQueryClient = gitHubLLMQueryClient;
         }
 
-        public override async Task<(ApiTestsStepResult, ApiTestStateTransitions)> HandleState(
-            StateContext<ApiTestStateTransitions, ApiTestsStepInput, ApiTestsStepResult> context, 
-            Session<ApiTestStateTransitions> session, 
-            ApiTestStateTransitions transition, 
-            ApiTestsStepInput stepInput)
+        public override async Task<(StepResult, ApiTestStateTransitions)> HandleState(
+            StateContext<ApiTestStateTransitions, StepInput, StepResult> context, 
+            Session<ApiTestStateTransitions, StepInput, StepResult> session, 
+            ApiTestStateTransitions transition,
+            StepInput stepInput)
         {
             ApiTestStateTransitions nextTransition = transition;
             if (transition == ApiTestStateTransitions.TestDescriptor)
@@ -42,14 +42,13 @@ namespace ApiTestingAgent.StateMachine.Steps
                 var serviceInformationDomain = chatCompletionResponse.StructuredOutput;
                 if (serviceInformationDomain.ServiceDomainIsValid)
                 {
+                    session.AddStepResult(new(GetName(), "FoundDomain"), serviceInformationDomain.ServiceDomain);
                     context.SetState(new RestDiscoveryState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
                     nextTransition = ApiTestStateTransitions.RestDiscovery;
-
-                    session.SetCurrentStep(context.GetStateName(), nextTransition);
                 }
 
                 return new (
-                    new ApiTestsStepResult()
+                    new StepResult()
                     {
                         StepSuccess = serviceInformationDomain.ServiceDomainIsValid,
                         CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>() { new CoPilotChatResponseMessage(serviceInformationDomain.ToString(), chatCompletionResponse.ChatCompletion, serviceInformationDomain.ServiceDomainIsValid) }

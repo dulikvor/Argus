@@ -105,10 +105,10 @@ namespace Argus.Contracts.OpenAI
         public CoPilotChatResponseMessage(string content, ChatCompletion chatCompletion, bool isUnconcluded)
         {
             Choices = new List<CoPilotChatChoice> { new CoPilotChatChoice(content, isUnconcluded) };
-            Model = chatCompletion.Model;
-            Id = chatCompletion.Id;
-            SystemFingerprint = chatCompletion.SystemFingerprint;
-            Usage = isUnconcluded == false && chatCompletion.Usage != null
+            Model = chatCompletion?.Model;
+            Id = chatCompletion?.Id;
+            SystemFingerprint = chatCompletion?.SystemFingerprint;
+            Usage = isUnconcluded == false && chatCompletion?.Usage != null
                 ? new UsageResponse
                 {
                     PromptTokens = chatCompletion.Usage.InputTokenCount,
@@ -116,7 +116,7 @@ namespace Argus.Contracts.OpenAI
                     TotalTokens = chatCompletion.Usage.TotalTokenCount
                 }
                 : null;
-            CreatedAt = chatCompletion.CreatedAt.Ticks;
+            CreatedAt = chatCompletion?.CreatedAt.Ticks ?? default;
         }
 
         public CoPilotChatResponseMessage() { }

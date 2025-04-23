@@ -25,7 +25,7 @@ public class Session<TTransition, TStepInput, TStepResult>
 
     public override string ToString()
     {
-        var stepResults = string.Join(", ", StepResult.Select(kvp => $"[({kvp.Key.Item1}, {kvp.Key.Item2}): {kvp.Value}]"));
+        var stepResults = string.Join(", ", StepResult.Select(kvp => $"[({kvp.Key.Item1.ToString()}, {kvp.Key.Item2.ToString()}): {kvp.Value.ToString()}]"));
         return $"Current Step: {CurrentStep.GetName()}, Current Transition: {CurrentTransition.ToString()}, Step Results: {stepResults}";
     }
 }

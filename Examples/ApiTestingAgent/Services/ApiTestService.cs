@@ -56,7 +56,7 @@ namespace ApiTestingAgent.Services
                 var filteredCoPilotChatRequestMessage = coPilotChatRequestMessage.GetUserLast();
 
                 var prompt = _promptDescriptorFactory.GetPromptDescriptor(nameof(ApiTestsPromptDescriptor))
-                    .GetPrompt(StatePromptsConstants.ApiTests.Keys.StateMachineKey);
+                    .GetPrompt(PromptsConstants.ApiTests.Keys.StateMachineKey);
                 filteredCoPilotChatRequestMessage.AddSystemMessage(prompt);
 
                 session.SetCurrentStep(stateContext.GetCurrentState(), transition);

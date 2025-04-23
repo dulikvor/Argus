@@ -13,7 +13,7 @@ public class ApiTestsPromptDescriptor : BaseStatePromptDescriptor
     protected override void Initialize()
     {
         // Initialize prompts
-        Prompts.Add(StatePromptsConstants.ApiTests.Keys.StateMachineKey,
+        Prompts.Add(PromptsConstants.ApiTests.Keys.StateMachineKey,
             "StateMachineOverview" + Environment.NewLine +
             "This state machine guides the user through a series of operations. " +
             "Currently, it includes the following steps:\n" +

@@ -3,11 +3,11 @@ using Argus.Common.PromptDescriptors;
 using System.Text.Json;
 
 namespace ApiTestingAgent.PromptDescriptor;
-public class RestDiscoveryPromptDescriptor : BaseStatePromptDescriptor
+public class CommandDiscoveryPromptDescriptor : BaseStatePromptDescriptor
 {
-    public override string DescriptorType => nameof(RestDiscoveryPromptDescriptor);
+    public override string DescriptorType => nameof(CommandDiscoveryPromptDescriptor);
 
-    public RestDiscoveryPromptDescriptor()
+    public CommandDiscoveryPromptDescriptor()
     {
         Initialize();
     }
@@ -15,7 +15,7 @@ public class RestDiscoveryPromptDescriptor : BaseStatePromptDescriptor
     protected override void Initialize()
     {
         // Initialize prompts
-        Prompts.Add(StatePromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryPromptKey,
+        Prompts.Add(PromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryPromptKey,
             "You are given an OpenAPI JSON specification containing Azure REST API resources. " +
             "Your task is to analyze all the operations listed under the \"paths\" section and extract the following for each operation:\n\n" +
             "1. **Rest route** – the full API endpoint URL (with placeholders like {subscriptionId}, {resourceGroupName}, {workspaceName}, etc.).\n" +
@@ -34,7 +34,7 @@ public class RestDiscoveryPromptDescriptor : BaseStatePromptDescriptor
             properties = new
             {
                 restDiscoveryIsValid = new { type = "boolean", description = "Whether rest discovery was parsed" },
-                instructionsToUser = new { type = "string", description = "Instructions for the user in case the service domain is not included or successfully concluded." },
+                instructionsToUser = new { type = "string", description = "Instructions for the user in case the rest discovery is not included or successfully concluded." },
                 detectedResources = new
                 {
                     type = "array",
@@ -55,7 +55,7 @@ public class RestDiscoveryPromptDescriptor : BaseStatePromptDescriptor
             required = new[] { "restDiscoveryIsValid", "instructionsToUser", "detectedResources" }
         };
 
-        StructuredResponses.Add<RestDiscoveryOutput>(StatePromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryReturnedOutputKey,
+        StructuredResponses.Add<RestDiscoveryOutput>(PromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryReturnedOutputKey,
             JsonSerializer.Serialize(restDiscoveryReturnedOutputSchema));
     }
 }

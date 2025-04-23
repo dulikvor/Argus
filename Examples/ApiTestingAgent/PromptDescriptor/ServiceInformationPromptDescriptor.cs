@@ -15,7 +15,7 @@ public class ServiceInformationPromptDescriptor : BaseStatePromptDescriptor
     protected override void Initialize()
     {
         // Initialize prompts
-        Prompts.Add(StatePromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey,
+        Prompts.Add(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey,
         "Extract the user service domain. If missing, instruct the user to provide the domain. " +
         "For example, a service domain usually looks like 'example.com'. If the domain is already known, return it to the user.");
 
@@ -31,7 +31,7 @@ public class ServiceInformationPromptDescriptor : BaseStatePromptDescriptor
             },
             required = new[] { "serviceDomain", "serviceDomainIsValid", "instructionsToUser" }
         };
-        StructuredResponses.Add<ServiceInformationDomainOutput>(StatePromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey,
+        StructuredResponses.Add<ServiceInformationDomainOutput>(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey,
             JsonSerializer.Serialize(serviceInformationDomainReturnedOutputSchema));
     }
 }

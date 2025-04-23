@@ -1,7 +1,7 @@
 using Argus.Common.StructuredResponses;
 using Argus.Contracts.OpenAI;
 using System.Text.Json.Serialization;
-using static ApiTestingAgent.PromptDescriptor.StatePromptsConstants;
+using static ApiTestingAgent.PromptDescriptor.PromptsConstants;
 
 namespace ApiTestingAgent.StructuredResponses;
 public class ServiceInformationDomainOutput

@@ -2,11 +2,19 @@
 
 namespace ApiTestingAgent.PromptDescriptor
 {
-    public static class StatePromptsConstants
+    public static class PromptsConstants
     {
         public static class SessionResult
         {
-            public const string SessionResultFunctionFormat = "Tool {0} result)";
+            public static class Keys
+            {
+                public const string SessionResultSessionDomain = "Found Domain";
+            }
+
+            public static class Formats
+            {
+                public const string SessionResultFunctionFormat = "Tool {0} result";
+            }
         }
 
         public static class ApiTests
@@ -32,6 +40,15 @@ namespace ApiTestingAgent.PromptDescriptor
             {
                 public const string RestResourcesDiscoveryPromptKey = $"{nameof(RestResourcesDiscoveryPromptKey)}";
                 public const string RestResourcesDiscoveryReturnedOutputKey = $"{nameof(RestResourcesDiscoveryReturnedOutputKey)}";
+            }
+        }
+
+        public static class CommandDiscovery
+        {
+            public static class Keys
+            {
+                public const string RestSelectPromptKey = $"{nameof(RestSelectPromptKey)}";
+                public const string RestSelectReturnedOutputKey = $"{nameof(RestSelectReturnedOutputKey)}";
             }
         }
     }

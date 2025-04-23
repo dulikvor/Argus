@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using static ApiTestingAgent.PromptDescriptor.PromptsConstants;
 
 namespace ApiTestingAgent.StructuredResponses;
 
@@ -14,7 +15,7 @@ public class RestDiscoveryOutput
 
     [JsonPropertyName("detectedResources")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public List<DetectedResource> DetectedResources { get; set; } = new();
+    public DetectedResources DetectedResources { get; set; } = new();
 
     public override string ToString()
     {
@@ -38,6 +39,14 @@ public class RestDiscoveryOutput
             }
         }
         return formattedMessage;
+    }
+}
+
+public class DetectedResources : List<DetectedResource>
+{
+    public override string ToString()
+    {
+        return string.Join(',', this.Select(x => x.ToString()));
     }
 }
 

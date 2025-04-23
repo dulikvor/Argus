@@ -32,17 +32,17 @@ namespace ApiTestingAgent.StateMachine.Steps
                 var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(ServiceInformationPromptDescriptor));
 
                 var coPilotChatRequestMessage = stepInput.CoPilotChatRequestMessage;
-                coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(StatePromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey));
+                coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey));
 
                 var structuredOutput = new OpenAIStructuredOutput(
-                    nameof(StatePromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey),
-                    concretePromptDescriptor.GetStructuredResponse(StatePromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey));
+                    nameof(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey),
+                    concretePromptDescriptor.GetStructuredResponse(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey));
 
                 var chatCompletionResponse = await _gitHubLLMQueryClient.Query<ServiceInformationDomainOutput>(coPilotChatRequestMessage, structuredOutput, null);
                 var serviceInformationDomain = chatCompletionResponse.StructuredOutput;
                 if (serviceInformationDomain.ServiceDomainIsValid)
                 {
-                    session.AddStepResult(new(GetName(), "FoundDomain"), serviceInformationDomain.ServiceDomain);
+                    session.AddStepResult(new(GetName(), PromptsConstants.SessionResult.Keys.SessionResultSessionDomain), serviceInformationDomain.ServiceDomain);
                     context.SetState(new RestDiscoveryState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
                     nextTransition = ApiTestStateTransitions.RestDiscovery;
                 }

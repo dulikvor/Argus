@@ -5,25 +5,22 @@ namespace ApiTestingAgent.StructuredResponses;
 
 public class RestDiscoveryOutput
 {
-    [JsonPropertyName("restDiscoveryIsValid")]
+    [JsonPropertyName("restDiscoveryDetectedInCurrentIteration")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public bool RestDiscoveryIsValid { get; set; }
+    public bool RestDiscoveryDetectedInCurrentIteration { get; set; }
 
     [JsonPropertyName("instructionsToUser")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public string InstructionsToUser { get; set; }
 
     [JsonPropertyName("detectedResources")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public DetectedResources DetectedResources { get; set; } = new();
 
+    [JsonPropertyName("stepIsConcluded")]
+    public bool StepIsConcluded { get; set; }
+
     public override string ToString()
     {
-        if (!RestDiscoveryIsValid)
-        {
-            return $"{InstructionsToUser}\n\n";
-        }
-
         var formattedMessage = $"{InstructionsToUser}\n\n";
         for (int i = 0; i < DetectedResources.Count; i++)
         {
@@ -47,6 +44,26 @@ public class DetectedResources : List<DetectedResource>
     public override string ToString()
     {
         return string.Join(',', this.Select(x => x.ToString()));
+    }
+
+    public void MergeOrUpdate(IEnumerable<DetectedResource> newResources)
+    {
+        foreach (var newResource in newResources)
+        {
+            var existingResource = this.FirstOrDefault(r => r.HttpMethod.Equals(newResource.HttpMethod, StringComparison.OrdinalIgnoreCase) 
+                && r.ResourceDepiction.Equals(newResource.ResourceDepiction, StringComparison.OrdinalIgnoreCase));
+
+            if (existingResource != null)
+            {
+                // Update the existing resource if needed
+                existingResource.SupportedJsonContent = newResource.SupportedJsonContent;
+            }
+            else
+            {
+                // Add the new resource
+                this.Add(newResource);
+            }
+        }
     }
 }
 

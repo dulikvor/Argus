@@ -22,7 +22,7 @@ namespace ApiTestingAgent.Services
 
         public ApiTestService(
             IServiceProvider serviceProvider,
-            IGitHubLLMQueryClient gitHubLLMQueryClient, 
+            IGitHubLLMQueryClient gitHubLLMQueryClient,
             IPromptDescriptorFactory promptDescriptorFactory, 
             IFunctionDescriptorFactory functionDescriptorFactory, 
             IResponseStreamWriter<ServerSentEventsStreamWriter> responseStreamWriter)
@@ -35,7 +35,7 @@ namespace ApiTestingAgent.Services
 
         public async Task InvokeNext(HttpContext httpContext, CoPilotChatRequestMessage coPilotChatRequestMessage)
         {
-            var session = SessionStore<ApiTestStateTransitions, StepInput, StepResult>.GetSessions((string)CallContext.GetData(ServiceConstants.Authentication.UserNameKey));
+            var session = SessionStore<ApiTestSession, ApiTestStateTransitions, StepInput, StepResult>.GetSessions((string)CallContext.GetData(ServiceConstants.Authentication.UserNameKey));
 
             ApiTestStateTransitions transition = default;
             ApiTestsStateContext stateContext = default;
@@ -47,7 +47,7 @@ namespace ApiTestingAgent.Services
             else
             {
                 stateContext = new ApiTestsStateContext(new ServiceInformationState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
-                transition = ApiTestStateTransitions.TestDescriptor;
+                transition = ApiTestStateTransitions.ServiceInformationDiscovery;
             }
 
             StepResult result = default;
@@ -71,11 +71,6 @@ namespace ApiTestingAgent.Services
                 if(result.CoPilotChatResponseMessages != null)
                 {
                     await _responseStreamWriter.WriteToStreamAsync(httpContext, result.CoPilotChatResponseMessages);
-                }
-
-                if (stateContext.IsEnd())
-                {
-                    return;
                 }
             }
             while (result.StepSuccess);

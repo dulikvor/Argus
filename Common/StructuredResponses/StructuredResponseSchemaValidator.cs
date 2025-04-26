@@ -37,7 +37,9 @@ public class SchemaValidator
                 // Check for array type compatibility
                 if (expectedTypeName == "array")
                 {
-                    if (!actualPropertyType.IsArray && !(actualPropertyType.IsGenericType && actualPropertyType.GetGenericTypeDefinition() == typeof(List<>)))
+                    if (!actualPropertyType.IsArray &&
+                        !(actualPropertyType.IsGenericType && actualPropertyType.GetGenericTypeDefinition() == typeof(List<>)) &&
+                        !(typeof(System.Collections.IEnumerable).IsAssignableFrom(actualPropertyType) && actualPropertyType != typeof(string)))
                     {
                         Console.WriteLine($"Type mismatch for property: {schemaProperty.Key}. Expected: array, Actual: {actualType}");
                         return false;

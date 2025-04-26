@@ -10,17 +10,22 @@ public class ServiceInformationDomainOutput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public string ServiceDomain { get; set; }
 
-    [JsonPropertyName("serviceDomainIsValid")]
+    [JsonPropertyName("stepIsConcluded")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public bool ServiceDomainIsValid { get; set; }
+    public bool StepIsConcluded { get; set; }
 
     [JsonPropertyName("instructionsToUser")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public string InstructionsToUser { get; set; }
 
+    [JsonPropertyName("serviceDomainDetectedInCurrentIteration")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool ServiceDomainDetectedInCurrentIteration { get; set; }
+
     public override string ToString()
     {
-        var prefix = ServiceDomainIsValid ? CopilotChatIcons.Checkmark : string.Empty;
-        return $"{prefix} {InstructionsToUser}\n\n";
+        var prefix = StepIsConcluded ? CopilotChatIcons.Checkmark : string.Empty;
+        var summary = StepIsConcluded ? $"\nSummary: Known domain is {ServiceDomain}" : string.Empty;
+        return $"{prefix} {InstructionsToUser} {summary}\n\n";
     }
 }

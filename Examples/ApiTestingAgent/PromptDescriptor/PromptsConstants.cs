@@ -9,6 +9,7 @@ namespace ApiTestingAgent.PromptDescriptor
             public static class Keys
             {
                 public const string SessionResultSessionDomain = "Found Domain";
+                public const string DetectedResourcesKey = "DetectedResources";
             }
 
             public static class Formats

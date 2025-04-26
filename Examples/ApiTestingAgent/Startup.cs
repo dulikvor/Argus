@@ -36,6 +36,7 @@ public class Startup
         services.AddSingleton<IStatePromptDescriptor, EndPromptDescriptor>();
         services.AddSingleton<IStatePromptDescriptor, ApiTestsPromptDescriptor>();
         services.AddSingleton<IStatePromptDescriptor, ServiceInformationPromptDescriptor>();
+        services.AddSingleton<IStatePromptDescriptor, CommandDiscoveryPromptDescriptor>();
         services.AddSingleton<IStatePromptDescriptor, RestDiscoveryPromptDescriptor>();
         services.AddSingleton<IPromptDescriptorFactory, PromptDescriptorFactory>();
         services.AddSingleton<IApiTestService, ApiTestService>();

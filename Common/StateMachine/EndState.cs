@@ -38,7 +38,7 @@ namespace Argus.Common.StateMachine
             return new(
                     new StepResult
                     {
-                        StepSuccess = true,
+                        StepSuccess = false,
                         CoPilotChatResponseMessages = chatCompletionResponse
                     },
                     default

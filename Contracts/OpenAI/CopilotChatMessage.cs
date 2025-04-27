@@ -11,5 +11,8 @@ namespace Argus.Contracts.OpenAI
 
         [JsonPropertyName("content")]
         public string Content { get; set; }
+
+        [JsonPropertyName("copilot_confirmations")]
+        public List<CopilotConfirmationResponseMessage> CopilotConfirmations { get; set; } // List of copilot confirmations.
     }
 }

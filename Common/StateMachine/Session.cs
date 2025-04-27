@@ -9,6 +9,7 @@ public class Session<TTransition, TStepInput, TStepResult>
 {
     public TTransition CurrentTransition { get; private set; }
     public State<TTransition, TStepInput, TStepResult> CurrentStep { get; private set; }
+    public string CurrentConfirmationId { get; private set; } // Tracks the current confirmation ID.
 
     protected Dictionary<StepResultKey, object> StepResult { get; } = new Dictionary<StepResultKey, object>();
 
@@ -21,6 +22,11 @@ public class Session<TTransition, TStepInput, TStepResult>
     {
         CurrentStep = step;
         CurrentTransition = transition;
+    }
+
+    public void SetCurrentConfirmationId(string confirmationId)
+    {
+        CurrentConfirmationId = confirmationId;
     }
 
     public override string ToString()

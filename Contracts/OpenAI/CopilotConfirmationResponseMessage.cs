@@ -8,7 +8,7 @@ public enum ConfirmationState
     Dismissed
 }
 
-public class CopilotConfirmationResponse
+public class CopilotConfirmationResponseMessage
 {
     [JsonPropertyName("state")]
     [JsonConverter(typeof(JsonStringEnumConverter))]

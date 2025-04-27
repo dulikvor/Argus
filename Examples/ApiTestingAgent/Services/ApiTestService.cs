@@ -72,6 +72,11 @@ namespace ApiTestingAgent.Services
                 {
                     await _responseStreamWriter.WriteToStreamAsync(httpContext, result.CoPilotChatResponseMessages);
                 }
+
+                if (result.ConfirmationMessage != null)
+                {
+                    await _responseStreamWriter.WriteToStreamAsync(httpContext, new List<object> { result.ConfirmationMessage }, EventType.CopilotConfirmation);
+                }
             }
             while (result.StepSuccess);
         }

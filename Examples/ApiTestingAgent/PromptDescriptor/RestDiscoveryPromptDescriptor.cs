@@ -16,17 +16,16 @@ public class RestDiscoveryPromptDescriptor : BaseStatePromptDescriptor
     {
         // Initialize prompts
         Prompts[PromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryPromptKey] =
-            "You are given an OpenAPI JSON specification containing Azure REST API resources. " +
-            "Your task is to analyze all the operations listed under the \"paths\" section and extract the following for each operation:\n\n" +
-            "1. **Rest route** \u2013 the full API endpoint URL (with placeholders like {subscriptionId}, {resourceGroupName}, {workspaceName}, etc.).\n" +
-            "2. **HTTP method** \u2013 e.g., GET, PUT, POST, DELETE, PATCH, etc.\n" +
-            "3. **Request content** \u2013 show the request body only if required (in JSON format) show it in full, every supported property. If the operation doesn't require a request body, skip this field.\n\n" +
-            "If the user provides additional or updated request content structures, dynamically adapt to include these changes in the analysis. Ensure the updated structure is reflected in the detected resources.\n\n" +
-            "Ensure that all HTTP methods, including less common ones (like `POST` or `PATCH`), are extracted. Do not miss any resource. Return the result in a clean and readable Markdown format with clear labels for each operation.\n" +
-            "Focus only on extracting the REST route, HTTP method, and request content (if applicable).\n\n" +
-            "Make sure no resources are overlooked, including special operations like migrations, batch processes, and any other lesser-known operations. Focus on operations under the `paths` section of the specification." +
-            "If the URL or HTML page is missing, prompt the user to provide a valid reference that depicts such a Swagger page or documentation." +
-            "If the analysis is successful, present the detected resources to the user for approval. The operation cannot be marked as valid until the user explicitly approves the results. If the user wishes to provide additional input or corrections, allow them to do so.";
+            "You are given an OpenAPI JSON specification for Azure REST API resources.\n" +
+            "Analyze all operations under the `paths` section and extract for each:\n" +
+            "1. **REST route** – full API URL with placeholders (e.g., `{subscriptionId}`, `{resourceGroupName}`).\n" +
+            "2. **HTTP method** – (GET, PUT, POST, DELETE, PATCH, etc.).\n" +
+            "3. **Request content** – full JSON body if required; skip if not applicable.\n\n" +
+            "If updated request structures or new URIs are provided, prioritize them over historic data. Request tool action to analyze new URIs if needed.\n\n" +
+            "Ensure no operations are missed, including migrations, batch processes, and uncommon methods like `PATCH`.\n\n" +
+            "Return the results in clean, labeled **Markdown** format. Focus strictly on extracting REST route, HTTP method, and request body (if any).\n\n" +
+            "If a valid specification URL or page is missing, prompt the user to provide one.\n\n" +
+            "Present the findings for **user approval** before marking as valid. Accept corrections or additional input if offered.";
 
         var restDiscoveryReturnedOutputSchema = new
         {

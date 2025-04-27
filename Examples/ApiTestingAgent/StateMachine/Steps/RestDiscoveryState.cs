@@ -134,7 +134,8 @@ namespace ApiTestingAgent.StateMachine.Steps
                     }
                 }
 
-                if (restDiscovery.StepIsConcluded)
+                var confirmationState = coPilotChatRequestMessage.GetUserFirst()?.GetConfirmation(session.CurrentConfirmationId);
+                if (confirmationState == ConfirmationState.Accepted)
                 {
                     context.SetState(new CommandDiscoveryState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
                     session.SetCurrentStep(context.GetCurrentState(), ApiTestStateTransitions.CommandDiscovery);
@@ -150,7 +151,23 @@ namespace ApiTestingAgent.StateMachine.Steps
                             ApiTestStateTransitions.CommandDiscovery);
                 }
 
-                
+                if (sessionResources != null && restDiscovery.DetectedResources.Any())
+                {
+                    var confirmation = CopilotConfirmationRequestMessage.GenerateConfirmationData();
+                    session.SetCurrentConfirmationId(confirmation.Id);
+                    return new(
+                            new StepResult
+                            {
+                                StepSuccess = false,
+                                ConfirmationMessage = new CopilotConfirmationRequestMessage
+                                {
+                                    Title = "Confirm Detected Resources",
+                                    Message = restDiscovery.ToString(),
+                                    Confirmation = confirmation
+                                }
+                            },
+                            ApiTestStateTransitions.RestDiscovery);
+                }
 
                 return new(
                     new StepResult

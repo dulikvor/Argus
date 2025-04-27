@@ -36,10 +36,44 @@ namespace Argus.Contracts.OpenAI
                 ? new List<CopilotChatMessage> { new CopilotChatMessage
                 {
                     Role = userMessage.Role,
-                    Content = userMessage.Content
+                    Content = userMessage.Content,
+                    CopilotConfirmations = userMessage.CopilotConfirmations
                 }}
                 : null
             };
+        }
+
+        public CoPilotChatRequestMessage GetUserFirst()
+        {
+            var userMessage = Messages?.Find((m => m.Role == ChatMessageRole.User));
+            return new CoPilotChatRequestMessage
+            {
+                Model = Model,
+                Messages = userMessage != null
+                ? new List<CopilotChatMessage> { new CopilotChatMessage
+                {
+                    Role = userMessage.Role,
+                    Content = userMessage.Content,
+                    CopilotConfirmations = userMessage.CopilotConfirmations
+                }}
+                : null
+            };
+        }
+
+        public ConfirmationState? GetConfirmation(string confirmationId)
+        {
+            // Iterate through all messages to find the confirmation with the given ID
+            foreach (var message in Messages ?? Enumerable.Empty<CopilotChatMessage>())
+            {
+                var confirmation = message.CopilotConfirmations?.FirstOrDefault(c => c.Confirmation.Id == confirmationId);
+                if (confirmation != null)
+                {
+                    return confirmation.State;
+                }
+            }
+
+            // Return null if no matching confirmation is found
+            return null;
         }
 
         public void AddSystemMessage(string content)

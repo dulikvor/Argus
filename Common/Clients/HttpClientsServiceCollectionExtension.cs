@@ -29,6 +29,22 @@ namespace Argus.Common.Clients
             return services;
         }
 
+        public static IServiceCollection AddServiceHttpClient<TIClient, TClientImplementation>(this IServiceCollection services, Aliases.TokenCreator tokenCreator = null)
+            where TIClient : class
+            where TClientImplementation : class, TIClient
+        {
+            var httpClientBuilder = services.AddHttpClient<TIClient, TClientImplementation>(
+                typeof(TIClient).Name)
+                .HttpClientConfiguration();
+
+            if (tokenCreator != null)
+            {
+                httpClientBuilder.AddHttpMessageHandler(provider => new HttpClientAuthenticationHandler(tokenCreator));
+            }
+
+            return services;
+        }
+
         public static IServiceCollection AddManagedServiceClient<TIClient, TClientImplementation>(this IServiceCollection services)
             where TIClient : class
             where TClientImplementation : class, TIClient

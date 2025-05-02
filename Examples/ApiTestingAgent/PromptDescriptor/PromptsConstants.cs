@@ -14,7 +14,8 @@ namespace ApiTestingAgent.PromptDescriptor
 
             public static class Formats
             {
-                public const string SessionResultFunctionFormat = "Tool {0} result";
+                public const string SessionResultFunctionSourceArgumentsFormat = "Tool {0} last known request arguments as detected by LLM";
+                public const string SessionResultFunctionFormat = "Tool {0} last known result";
             }
         }
 
@@ -50,6 +51,26 @@ namespace ApiTestingAgent.PromptDescriptor
             {
                 public const string RestSelectPromptKey = $"{nameof(RestSelectPromptKey)}";
                 public const string RestSelectReturnedOutputKey = $"{nameof(RestSelectReturnedOutputKey)}";
+            }
+        }
+
+        public static class ExpectedOutcome
+        {
+            public static class Keys
+            {
+                public const string ExpectedOutcomePromptKey = "ExpectedOutcomePromptKey";
+                public const string ExpectedOutcomeReturnedOutputKey = "ExpectedOutcomeReturnedOutputKey";
+            }
+        }
+
+        public static class CommandInvocation
+        {
+            public static class Keys
+            {
+                public const string HttpMethod = "HttpMethod";
+                public const string ResponseContent = "ResponseContent";
+                public const string CommandInvocationPromptKey = "CommandInvocationPromptKey";
+                public const string CommandInvocationReturnedOutputKey = "CommandInvocationReturnedOutputKey";
             }
         }
     }

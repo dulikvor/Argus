@@ -9,7 +9,7 @@ namespace Argus.Common.Data
         public static void SetData(string name, object data) =>
             State.GetOrAdd(name, _ => new AsyncLocal<object>()).Value = data;
 
-        public static object? GetData(string name) =>
-            State.TryGetValue(name, out AsyncLocal<object>? data) ? data?.Value : null;
+        public static object GetData(string name) =>
+            State.TryGetValue(name, out AsyncLocal<object> data) ? data?.Value : null;
     }
 }

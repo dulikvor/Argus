@@ -18,13 +18,14 @@ public class RestDiscoveryPromptDescriptor : BaseStatePromptDescriptor
         Prompts[PromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryPromptKey] =
             "You are given an OpenAPI JSON specification for Azure REST API resources.\n" +
             "Analyze all operations under the `paths` section and extract for each:\n" +
-            "1. **REST route** – full API URL with placeholders (e.g., `{subscriptionId}`, `{resourceGroupName}`).\n" +
-            "2. **HTTP method** – (GET, PUT, POST, DELETE, PATCH, etc.).\n" +
-            "3. **Request content** – full JSON body if required; skip if not applicable.\n\n" +
+            "1. **REST route** \u2013 full API URL with placeholders (e.g., `{subscriptionId}`, `{resourceGroupName}`).\n" +
+            "2. **HTTP method** \u2013 (GET, PUT, POST, DELETE, PATCH, etc.).\n" +
+            "3. **Request content** \u2013 full JSON body if required; skip if not applicable.\n\n" +
             "If updated request structures or new URIs are provided, prioritize them over historic data. Request tool action to analyze new URIs if needed.\n\n" +
             "Ensure no operations are missed, including migrations, batch processes, and uncommon methods like `PATCH`.\n\n" +
             "Return the results in clean, labeled **Markdown** format. Focus strictly on extracting REST route, HTTP method, and request body (if any).\n\n" +
             "If a valid specification URL or page is missing, prompt the user to provide one.\n\n" +
+            "Provide examples of valid and invalid REST routes to guide the user.\n" +
             "Present the findings for **user approval** before marking as valid. Accept corrections or additional input if offered.";
 
         var restDiscoveryReturnedOutputSchema = new

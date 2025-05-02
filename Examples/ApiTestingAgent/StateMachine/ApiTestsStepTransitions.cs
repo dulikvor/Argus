@@ -7,8 +7,8 @@
         RawContentGet,
         RestCompile,
         CommandDiscovery,
-        CommandConsent,
-        CommandConsentApproval,
+        ExpectedOutcome,
+        CommandInvocation,
         Any
     }
 }

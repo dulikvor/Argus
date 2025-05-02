@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using static ApiTestingAgent.PromptDescriptor.PromptsConstants;
 
 namespace ApiTestingAgent.StructuredResponses;
-public class ServiceInformationDomainOutput
+public class ServiceInformationDomainOutput : BaseOutput
 {
     [JsonPropertyName("serviceDomain")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -24,8 +24,18 @@ public class ServiceInformationDomainOutput
 
     public override string ToString()
     {
+        return $"\nSummary: Known domain is {ServiceDomain}";
+    }
+
+    public override string OutputIncrementalResult()
+    {
+        return $"Incremental Result: {ToString()}";
+    }
+
+    public override string OutputResult()
+    {
         var prefix = StepIsConcluded ? CopilotChatIcons.Checkmark : string.Empty;
-        var summary = StepIsConcluded ? $"\nSummary: Known domain is {ServiceDomain}" : string.Empty;
+        var summary = StepIsConcluded ? ToString() : string.Empty;
         return $"{prefix} {InstructionsToUser} {summary}\n\n";
     }
 }

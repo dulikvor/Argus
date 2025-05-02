@@ -5,6 +5,7 @@ using Argus.Common.Functions;
 using Argus.Common.PromptDescriptors;
 using Argus.Common.StateMachine;
 using Argus.Contracts.OpenAI;
+using static ApiTestingAgent.PromptDescriptor.PromptsConstants;
 
 namespace ApiTestingAgent.StateMachine.Steps
 {
@@ -29,11 +30,29 @@ namespace ApiTestingAgent.StateMachine.Steps
             ApiTestStateTransitions transition,
             StepInput stepInput)
         {
+            var coPilotChatRequestMessage = stepInput.CoPilotChatRequestMessage;
+            var previousChatCompletion = stepInput.PreviousStepResult.PreviousChatCompletion;
             if (transition == ApiTestStateTransitions.CommandDiscovery)
             {
-                var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(CommandDiscoveryPromptDescriptor));
+                var confirmationState = coPilotChatRequestMessage.GetUserFirst().GetConfirmation(session.CurrentConfirmationId);
+                if (confirmationState == ConfirmationState.Accepted)
+                {
+                    session.ResetConfirmationId();
+                    context.SetState(new ExpectedOutcomeState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
+                    session.SetCurrentStep(context.GetCurrentState(), ApiTestStateTransitions.ExpectedOutcome);
+                    return new(
+                            new StepResult
+                            {
+                                StepSuccess = true,
+                                CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>()
+                                {
+                                    new CoPilotChatResponseMessage("Command Selected.", previousChatCompletion, false)
+                                }
+                            },
+                            ApiTestStateTransitions.ExpectedOutcome);
+                }
 
-                var coPilotChatRequestMessage = stepInput.CoPilotChatRequestMessage;
+                var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(CommandDiscoveryPromptDescriptor));
                 coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.CommandDiscovery.Keys.RestSelectPromptKey));
 
                 var structuredOutput = new OpenAIStructuredOutput(
@@ -43,33 +62,32 @@ namespace ApiTestingAgent.StateMachine.Steps
                 var chatCompletionResponse = await _gitHubLLMQueryClient.Query<CommandDiscoveryOutput>(coPilotChatRequestMessage, structuredOutput, null);
                 var commandDiscoveryOutput = chatCompletionResponse.StructuredOutput;
 
-                //if (commandDiscoveryOutput.CommandIsValid)
-                //{
-                //    if (commandDiscoveryOutput.CommandIsValid)
-                //    {
-                //        session.AddStepResult(new(GetName(), "SelectedCommand"), commandDiscoveryOutput.SelectedCommand);
-                //        session.SetCurrentStep(new EndState<ApiTestStateTransitions, StepInput>(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory), ApiTestStateTransitions.Any);
-                //        context.SetState(new EndState<ApiTestStateTransitions, StepInput>(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
-                //        return new(
-                //            new StepResult
-                //            {
-                //                StepSuccess = true,
-                //                CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>()
-                //                {
-                //                    new CoPilotChatResponseMessage(commandDiscoveryOutput.ToString(), chatCompletionResponse.ChatCompletion, true)
-                //                }
-                //            },
-                //            ApiTestStateTransitions.Any);
-                //    }
-                //}
+                if(commandDiscoveryOutput.CommandIsValid)
+                {
+                    var confirmation = CopilotConfirmationRequestMessage.GenerateConfirmationData();
+                    session.SetCurrentConfirmationId(confirmation.Id);
+                    return new(
+                            new StepResult
+                            {
+                                StepSuccess = false,
+                                ConfirmationMessage = new CopilotConfirmationRequestMessage
+                                {
+                                    Title = "Confirm Selected Command",
+                                    Message = commandDiscoveryOutput.OutputResult(),
+                                    Confirmation = confirmation,
+                                },
+                                PreviousChatCompletion = chatCompletionResponse.ChatCompletion
+                            },
+                            ApiTestStateTransitions.CommandDiscovery);
+                }
 
-                return new (
+                return new(
                     new StepResult
                     {
                         StepSuccess = false,
-                        CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>()
+                        CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>
                         {
-                            new CoPilotChatResponseMessage(commandDiscoveryOutput.ToString(), chatCompletionResponse.ChatCompletion, false)
+                            new CoPilotChatResponseMessage(commandDiscoveryOutput.OutputIncrementalResult(), chatCompletionResponse.ChatCompletion, false)
                         }
                     },
                     ApiTestStateTransitions.CommandDiscovery);

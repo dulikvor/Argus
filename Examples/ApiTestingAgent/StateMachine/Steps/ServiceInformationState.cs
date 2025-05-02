@@ -54,7 +54,7 @@ namespace ApiTestingAgent.StateMachine.Steps
                     new StepResult()
                     {
                         StepSuccess = serviceInformationDomain.StepIsConcluded,
-                        CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>() { new CoPilotChatResponseMessage(serviceInformationDomain.ToString(), chatCompletionResponse.ChatCompletion, serviceInformationDomain.StepIsConcluded) }
+                        CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>() { new CoPilotChatResponseMessage(serviceInformationDomain.OutputResult(), chatCompletionResponse.ChatCompletion, serviceInformationDomain.StepIsConcluded) }
                     },
                     nextTransition);
             }

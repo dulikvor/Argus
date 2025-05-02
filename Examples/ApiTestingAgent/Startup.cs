@@ -3,6 +3,7 @@ using ApiTestingAgent.Services;
 using Argus.Clients.GitHubAuthentication;
 using Argus.Clients.GitHubLLMQuery;
 using Argus.Clients.GitHubRawContentCdnClient;
+using Argus.Clients.RestClient;
 using Argus.Common.Builtin.Functions;
 using Argus.Common.Builtin.PromptDescriptor;
 using Argus.Common.Clients;
@@ -46,6 +47,7 @@ public class Startup
         services.AddSingleton<ITypedHttpServiceClientFactory, TypedHttpServiceClientFactory>();
         services.AddServiceHttpClient<IGitHubAuthenticationClient, GitHubAuthenticationClient, GitHubAuthenticationClientOptions>(GitHubAuthenticationClient.TokenCreator);
         services.AddServiceHttpClient<IGitHubRawContentCdnClient, GitHubRawContentCdnClient, GitHubRawContentCdnClientOptions>();
+        services.AddServiceHttpClient<IRestClient, RestClient>();
         services.AddManagedServiceClient<IGitHubLLMQueryClient, GitHubLLMQueryClient>();
     }
 

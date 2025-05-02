@@ -29,6 +29,11 @@ public class Session<TTransition, TStepInput, TStepResult>
         CurrentConfirmationId = confirmationId;
     }
 
+    public void ResetConfirmationId()
+    {
+        CurrentConfirmationId = null;
+    }
+
     public override string ToString()
     {
         var stepResults = string.Join(", ", StepResult.Select(kvp => $"[({kvp.Key.Item1.ToString()}, {kvp.Key.Item2.ToString()}): {kvp.Value.ToString()}]"));

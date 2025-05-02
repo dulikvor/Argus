@@ -18,6 +18,7 @@ public class CommandDiscoveryPromptDescriptor : BaseStatePromptDescriptor
         Prompts[PromptsConstants.CommandDiscovery.Keys.RestSelectPromptKey] =
             "Analyze the provided REST API operations and select the most appropriate command to execute. " +
             "Ensure the command is valid and adheres to the constraints of HTTP methods (GET, POST, PUT, DELETE). " +
+            "The domain must be derived from the discovery domain state result and used in the returned URI. " +
             "Selection must strictly follow the customer's specific instructions. Do not make assumptions or guesses. " +
             "The request URI must be one of the REST APIs known through the Rest Discovery step. " +
             "When building the command, review what is already known about the specified command and extend it in accordance with customer requests. " +
@@ -33,14 +34,14 @@ public class CommandDiscoveryPromptDescriptor : BaseStatePromptDescriptor
             type = "object",
             properties = new
             {
-                commandIsValid = new { type = "boolean", description = "Whether the command is valid." },
-                selectedCommand = new { type = "string", description = "The selected command to execute." },
-                instructionsToUser = new { type = "string", description = "Instructions for the user in case the command is invalid or missing." },
+                commandIsValid = new { type = "boolean", description = "Whether the command is valid. Valid when no placeholders exist in the URI, and the URI pattern and method match a known REST API." },
+                instructionsToUser = new { type = "string", description = "Instructions for the user in case the command is invalid or missing. Provide clear and actionable steps to correct the issue." },
                 httpMethod = new { type = "string", description = "The HTTP method of the selected command." },
                 requestUri = new { type = "string", description = "The request URI of the selected command." },
-                content = new { type = "string", description = "The JSON content of the selected command." }
+                content = new { type = "string", description = "The JSON content of the selected command." },
+                commandDiscoveryDetectedInCurrentIteration = new { type = "boolean", description = "Indicates if a change due to user request was detected, such as updates to the selected command method, URI, placeholders, or request content." }
             },
-            required = new[] { "commandIsValid", "selectedCommand", "instructionsToUser", "httpMethod", "requestUri", "content" }
+            required = new[] { "commandIsValid", "commandDiscoveryDetectedInCurrentIteration", "instructionsToUser", "httpMethod", "requestUri", "content" }
         };
 
         StructuredResponses.Add<CommandDiscoveryOutput>(PromptsConstants.CommandDiscovery.Keys.RestSelectReturnedOutputKey,

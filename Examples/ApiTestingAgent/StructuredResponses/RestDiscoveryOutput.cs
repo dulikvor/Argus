@@ -3,7 +3,7 @@ using static ApiTestingAgent.PromptDescriptor.PromptsConstants;
 
 namespace ApiTestingAgent.StructuredResponses;
 
-public class RestDiscoveryOutput
+public class RestDiscoveryOutput : BaseOutput
 {
     [JsonPropertyName("restDiscoveryDetectedInCurrentIteration")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -21,7 +21,7 @@ public class RestDiscoveryOutput
 
     public override string ToString()
     {
-        var formattedMessage = $"{InstructionsToUser}\n\n";
+        var formattedMessage = string.Empty;
         for (int i = 0; i < DetectedResources.Count; i++)
         {
             var resource = DetectedResources[i];
@@ -35,6 +35,18 @@ public class RestDiscoveryOutput
                 formattedMessage += "\n```\n\n";
             }
         }
+        return formattedMessage;
+    }
+
+    public override string OutputIncrementalResult()
+    {
+        return $"Incremental Result: {ToString()}";
+    }
+
+    public override string OutputResult()
+    {
+        var formattedMessage = $"{InstructionsToUser}\n\n";
+        formattedMessage += ToString();
         return formattedMessage;
     }
 }

@@ -39,7 +39,7 @@ namespace ApiTestingAgent.StateMachine.Steps
             {
                 case ApiTestStateTransitions.RestDiscovery:
                     {
-                        return await RestDiscovery(context, session, stepInput.CoPilotChatRequestMessage, stepInput.PreviousStepResult.PreviousChatCompletion);
+                        return await RestDiscovery(context, session, stepInput.CoPilotChatRequestMessage, stepInput.PreviousStepResult?.PreviousChatCompletion);
                     }
                 case ApiTestStateTransitions.RawContentGet:
                     {

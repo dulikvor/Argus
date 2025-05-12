@@ -66,8 +66,7 @@ namespace Argus.Clients.GitHubLLMQuery
 
             ChatCompletionOptions chatCompletionOptions = new ChatCompletionOptions
             {
-                ResponseFormat = structuredOutput != null ? ChatResponseFormat.CreateJsonSchemaFormat(structuredOutput.JsonSchemaFormatName, structuredOutput.JsonSchema) : null,
-                ToolChoice = toolsRequired ? ChatToolChoice.CreateRequiredChoice() : ChatToolChoice.CreateAutoChoice()
+                ResponseFormat = structuredOutput != null ? ChatResponseFormat.CreateJsonSchemaFormat(structuredOutput.JsonSchemaFormatName, structuredOutput.JsonSchema) : null
             };
 
             foreach (var tool in tools ?? new List<ChatTool>())

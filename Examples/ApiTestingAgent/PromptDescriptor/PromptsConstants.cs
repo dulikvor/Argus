@@ -49,6 +49,7 @@ namespace ApiTestingAgent.PromptDescriptor
         {
             public static class Keys
             {
+                public const string SelectedCommandKey = $"{nameof(SelectedCommandKey)}";
                 public const string RestSelectPromptKey = $"{nameof(RestSelectPromptKey)}";
                 public const string RestSelectReturnedOutputKey = $"{nameof(RestSelectReturnedOutputKey)}";
             }

@@ -31,7 +31,7 @@ namespace ApiTestingAgent.StateMachine.Steps
             StepInput stepInput)
         {
             var coPilotChatRequestMessage = stepInput.CoPilotChatRequestMessage;
-            var previousChatCompletion = stepInput.PreviousStepResult.PreviousChatCompletion;
+            var previousChatCompletion = stepInput.PreviousStepResult?.PreviousChatCompletion;
             if (transition == ApiTestStateTransitions.CommandDiscovery)
             {
                 var confirmationState = coPilotChatRequestMessage.GetUserFirst().GetConfirmation(session.CurrentConfirmationId);
@@ -66,6 +66,7 @@ namespace ApiTestingAgent.StateMachine.Steps
                 {
                     var confirmation = CopilotConfirmationRequestMessage.GenerateConfirmationData();
                     session.SetCurrentConfirmationId(confirmation.Id);
+                    session.AddStepResult(new(GetName(), PromptsConstants.CommandDiscovery.Keys.SelectedCommandKey), commandDiscoveryOutput.OutputIncrementalResult());
                     return new(
                             new StepResult
                             {

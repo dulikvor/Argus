@@ -2,9 +2,13 @@
 {
     public enum ApiTestStateTransitions
     {
-        TestDescriptor,
+        ServiceInformationDiscovery,
         RestDiscovery,
         RawContentGet,
+        RestCompile,
+        CommandDiscovery,
+        ExpectedOutcome,
+        CommandInvocation,
         Any
     }
 }

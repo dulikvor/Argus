@@ -1,29 +1,27 @@
 using System.Text.Json.Serialization;
+using static ApiTestingAgent.PromptDescriptor.PromptsConstants;
 
 namespace ApiTestingAgent.StructuredResponses;
 
-public class RestDiscoveryOutput
+public class RestDiscoveryOutput : BaseOutput
 {
-    [JsonPropertyName("restDiscoveryIsValid")]
+    [JsonPropertyName("restDiscoveryDetectedInCurrentIteration")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public bool RestDiscoveryIsValid { get; set; }
+    public bool RestDiscoveryDetectedInCurrentIteration { get; set; }
 
     [JsonPropertyName("instructionsToUser")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public string InstructionsToUser { get; set; }
 
     [JsonPropertyName("detectedResources")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public List<DetectedResource> DetectedResources { get; set; } = new();
+    public DetectedResources DetectedResources { get; set; } = new();
+
+    [JsonPropertyName("stepIsConcluded")]
+    public bool StepIsConcluded { get; set; }
 
     public override string ToString()
     {
-        if (!RestDiscoveryIsValid)
-        {
-            return $"{InstructionsToUser}\n\n";
-        }
-
-        var formattedMessage = $"{InstructionsToUser}\n\n";
+        var formattedMessage = string.Empty;
         for (int i = 0; i < DetectedResources.Count; i++)
         {
             var resource = DetectedResources[i];
@@ -38,6 +36,46 @@ public class RestDiscoveryOutput
             }
         }
         return formattedMessage;
+    }
+
+    public override string OutputIncrementalResult()
+    {
+        return $"Incremental Result: {ToString()}";
+    }
+
+    public override string OutputResult()
+    {
+        var formattedMessage = $"{InstructionsToUser}\n\n";
+        formattedMessage += ToString();
+        return formattedMessage;
+    }
+}
+
+public class DetectedResources : List<DetectedResource>
+{
+    public override string ToString()
+    {
+        return string.Join(',', this.Select(x => x.ToString()));
+    }
+
+    public void MergeOrUpdate(IEnumerable<DetectedResource> newResources)
+    {
+        foreach (var newResource in newResources)
+        {
+            var existingResource = this.FirstOrDefault(r => r.HttpMethod.Equals(newResource.HttpMethod, StringComparison.OrdinalIgnoreCase) 
+                && r.ResourceDepiction.Equals(newResource.ResourceDepiction, StringComparison.OrdinalIgnoreCase));
+
+            if (existingResource != null)
+            {
+                // Update the existing resource if needed
+                existingResource.SupportedJsonContent = newResource.SupportedJsonContent;
+            }
+            else
+            {
+                // Add the new resource
+                this.Add(newResource);
+            }
+        }
     }
 }
 

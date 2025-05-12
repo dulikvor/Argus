@@ -54,7 +54,7 @@ namespace Argus.Common.Clients
             return default(TResponse);
         }
 
-        public static async Task<TResponse?> PostAsync<TResponse, TContent>(
+        public static async Task<TResponse> PostAsync<TResponse, TContent>(
             this HttpClient httpClient,
             string uri,
             TContent content,
@@ -91,7 +91,7 @@ namespace Argus.Common.Clients
                 return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken: cancellationToken);
             }
 
-            return default(TResponse?);
+            return default(TResponse);
         }
 
         private static StringContent GetHttpStringContent(object body)

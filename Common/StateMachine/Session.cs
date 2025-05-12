@@ -9,8 +9,9 @@ public class Session<TTransition, TStepInput, TStepResult>
 {
     public TTransition CurrentTransition { get; private set; }
     public State<TTransition, TStepInput, TStepResult> CurrentStep { get; private set; }
+    public string CurrentConfirmationId { get; private set; } // Tracks the current confirmation ID.
 
-    Dictionary<StepResultKey, object> StepResult { get; } = new Dictionary<StepResultKey, object>();
+    protected Dictionary<StepResultKey, object> StepResult { get; } = new Dictionary<StepResultKey, object>();
 
     public void AddStepResult(StepResultKey stepResultKey, object value)
     {
@@ -23,10 +24,25 @@ public class Session<TTransition, TStepInput, TStepResult>
         CurrentTransition = transition;
     }
 
+    public void SetCurrentConfirmationId(string confirmationId)
+    {
+        CurrentConfirmationId = confirmationId;
+    }
+
+    public void ResetConfirmationId()
+    {
+        CurrentConfirmationId = null;
+    }
+
     public override string ToString()
     {
-        var stepResults = string.Join(", ", StepResult.Select(kvp => $"[({kvp.Key.Item1}, {kvp.Key.Item2}): {kvp.Value}]"));
+        var stepResults = string.Join(", ", StepResult.Select(kvp => $"[({kvp.Key.Item1.ToString()}, {kvp.Key.Item2.ToString()}): {kvp.Value.ToString()}]"));
         return $"Current Step: {CurrentStep.GetName()}, Current Transition: {CurrentTransition.ToString()}, Step Results: {stepResults}";
+    }
+
+    public static StepResultKey CompileKey(string stepName, string key)
+    {
+        return (stepName, key);
     }
 }
 

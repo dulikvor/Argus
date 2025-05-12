@@ -27,22 +27,25 @@ namespace ApiTestingAgent.StateMachine.Steps
             StepInput stepInput)
         {
             ApiTestStateTransitions nextTransition = transition;
-            if (transition == ApiTestStateTransitions.TestDescriptor)
+            if (transition == ApiTestStateTransitions.ServiceInformationDiscovery)
             {
                 var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(ServiceInformationPromptDescriptor));
 
                 var coPilotChatRequestMessage = stepInput.CoPilotChatRequestMessage;
-                coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(StatePromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey));
+                coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey));
 
                 var structuredOutput = new OpenAIStructuredOutput(
-                    nameof(StatePromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey),
-                    concretePromptDescriptor.GetStructuredResponse(StatePromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey));
+                    nameof(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey),
+                    concretePromptDescriptor.GetStructuredResponse(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey));
 
                 var chatCompletionResponse = await _gitHubLLMQueryClient.Query<ServiceInformationDomainOutput>(coPilotChatRequestMessage, structuredOutput, null);
                 var serviceInformationDomain = chatCompletionResponse.StructuredOutput;
-                if (serviceInformationDomain.ServiceDomainIsValid)
+                if(serviceInformationDomain.ServiceDomainDetectedInCurrentIteration)
                 {
-                    session.AddStepResult(new(GetName(), "FoundDomain"), serviceInformationDomain.ServiceDomain);
+                    session.AddStepResult(new(GetName(), PromptsConstants.SessionResult.Keys.SessionResultSessionDomain), serviceInformationDomain.ServiceDomain);
+                }
+                if (serviceInformationDomain.StepIsConcluded)
+                {
                     context.SetState(new RestDiscoveryState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
                     nextTransition = ApiTestStateTransitions.RestDiscovery;
                 }
@@ -50,8 +53,8 @@ namespace ApiTestingAgent.StateMachine.Steps
                 return new (
                     new StepResult()
                     {
-                        StepSuccess = serviceInformationDomain.ServiceDomainIsValid,
-                        CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>() { new CoPilotChatResponseMessage(serviceInformationDomain.ToString(), chatCompletionResponse.ChatCompletion, serviceInformationDomain.ServiceDomainIsValid) }
+                        StepSuccess = serviceInformationDomain.StepIsConcluded,
+                        CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>() { new CoPilotChatResponseMessage(serviceInformationDomain.OutputResult(), chatCompletionResponse.ChatCompletion, serviceInformationDomain.StepIsConcluded) }
                     },
                     nextTransition);
             }

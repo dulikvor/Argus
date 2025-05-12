@@ -18,28 +18,47 @@ namespace Argus.Contracts.OpenAI
             return new CoPilotChatRequestMessage
             {
                 Model = Model,
-                Messages = Messages?.Select(m => new CopilotChatMessage
-                {
-                    Role = m.Role,
-                    Content = m.Content
-                }).ToList()
+                Messages = Messages?.Select(m => m.Clone()).ToList()
             };
         }
 
         public CoPilotChatRequestMessage GetUserLast()
         {
-            var userMessage = Messages?.FindLast((m => m.Role == ChatMessageRole.User));
+            var userMessage = Messages?.LastOrDefault(m => m.Role == ChatMessageRole.User);
+            return CreateSingleMessageRequest(userMessage);
+        }
+
+        public CoPilotChatRequestMessage GetUserFirst()
+        {
+            var userMessage = Messages?.FirstOrDefault(m => m.Role == ChatMessageRole.User);
+            return CreateSingleMessageRequest(userMessage);
+        }
+
+        private CoPilotChatRequestMessage CreateSingleMessageRequest(CopilotChatMessage message)
+        {
             return new CoPilotChatRequestMessage
             {
                 Model = Model,
-                Messages = userMessage != null
-                ? new List<CopilotChatMessage> { new CopilotChatMessage
-                {
-                    Role = userMessage.Role,
-                    Content = userMessage.Content
-                }}
-                : null
+                Messages = message != null
+                    ? new List<CopilotChatMessage> { message.Clone() }
+                    : null
             };
+        }
+
+        public ConfirmationState? GetConfirmation(string confirmationId)
+        {
+            // Iterate through all messages to find the confirmation with the given ID
+            foreach (var message in Messages ?? Enumerable.Empty<CopilotChatMessage>())
+            {
+                var confirmation = message.CopilotConfirmations?.FirstOrDefault(c => c.Confirmation.Id == confirmationId);
+                if (confirmation != null)
+                {
+                    return confirmation.State;
+                }
+            }
+
+            // Return null if no matching confirmation is found
+            return null;
         }
 
         public void AddSystemMessage(string content)

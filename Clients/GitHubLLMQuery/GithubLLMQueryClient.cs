@@ -55,7 +55,7 @@ namespace Argus.Clients.GitHubLLMQuery
             return result;
         }
 
-        public async Task<ChatCompletionStructuredResponse<TResponse>> Query<TResponse>(CoPilotChatRequestMessage coPilotChatRequestMessage, OpenAIStructuredOutput structuredOutput, IList<ChatTool> tools) where TResponse : class
+        public async Task<ChatCompletionStructuredResponse<TResponse>> Query<TResponse>(CoPilotChatRequestMessage coPilotChatRequestMessage, OpenAIStructuredOutput structuredOutput, IList<ChatTool> tools, bool toolsRequired = false) where TResponse : class
         {
             ArgumentValidationHelper.Ensure.NotNull(coPilotChatRequestMessage.Model, "Model");
             ArgumentValidationHelper.Ensure.NotNull(structuredOutput, "StructuredOutput");
@@ -66,8 +66,7 @@ namespace Argus.Clients.GitHubLLMQuery
 
             ChatCompletionOptions chatCompletionOptions = new ChatCompletionOptions
             {
-                ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(structuredOutput.JsonSchemaFormatName, structuredOutput.JsonSchema),
-
+                ResponseFormat = structuredOutput != null ? ChatResponseFormat.CreateJsonSchemaFormat(structuredOutput.JsonSchemaFormatName, structuredOutput.JsonSchema) : null
             };
 
             foreach (var tool in tools ?? new List<ChatTool>())

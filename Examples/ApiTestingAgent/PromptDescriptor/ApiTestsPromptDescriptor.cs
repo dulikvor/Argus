@@ -1,7 +1,7 @@
 using Argus.Common.PromptDescriptors;
 
 namespace ApiTestingAgent.PromptDescriptor;
-public class ApiTestsPromptDescriptor : BaseStatePromptDescriptor
+public class ApiTestsPromptDescriptor : BasePromptDescriptor
 {
     public override string DescriptorType => nameof(ApiTestsPromptDescriptor);
 

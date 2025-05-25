@@ -1,11 +1,12 @@
 using Argus.Clients.RestClient;
 using Argus.Common.Functions;
 using OpenAI.Chat;
+using System.Net;
 using System.Text.Json.Serialization;
 
 namespace Argus.Common.Builtin.Functions
 {
-    public class RestToolFunctionDescriptor : ConcreteFunctionDescriptor<Task<(int HttpStatusCode, string Content)>, string, string, Dictionary<string, string>, string>
+    public class RestToolFunctionDescriptor : ConcreteFunctionDescriptor<Task<(HttpStatusCode HttpStatusCode, string Content)>, string, string, Dictionary<string, string>, string>
     {
         public class RestToolParametersType
         {

@@ -1,28 +1,27 @@
 ﻿namespace Argus.Common.StateMachine;
 
-public class StateContext<TTransition, TStepInput, TStepResult> 
+public class StateContext<TTransition, TStepInput> 
     where TTransition : Enum
     where TStepInput : StepInput
-    where TStepResult : StepResult
 {
-    private State<TTransition, TStepInput, TStepResult> _currentState;
+    private State<TTransition, TStepInput> _currentState;
 
-    public StateContext(State<TTransition, TStepInput, TStepResult> startingState)
+    public StateContext(State<TTransition, TStepInput> startingState)
     {
         _currentState = startingState;
     }
 
-    public async Task<(TStepResult, TTransition)> HandleState(Session<TTransition, TStepInput, TStepResult> session, TTransition commandType, TStepInput stepInput)
+    public async Task<(StepResult, TTransition)> HandleState(Session<TTransition, TStepInput> session, TTransition commandType, TStepInput stepInput)
     {
         return await _currentState.HandleState(this, session, commandType, stepInput);
     }
 
-    public void SetState(State<TTransition, TStepInput, TStepResult> nextState)
+    public void SetState(State<TTransition, TStepInput> nextState)
     {
         _currentState = nextState;
     }
 
-    public State<TTransition, TStepInput, TStepResult> GetCurrentState()
+    public State<TTransition, TStepInput> GetCurrentState()
     {
         return _currentState;
     }

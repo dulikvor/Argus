@@ -3,13 +3,13 @@
 namespace Argus.Common.StateMachine;
 
 public static class SessionStore<TSession, TTransition, TStepInput, TStepResult>
-    where TSession : Session<TTransition, TStepInput, TStepResult>, new()
+    where TSession : Session<TTransition, TStepInput>, new()
     where TTransition : Enum
     where TStepInput : StepInput
     where TStepResult : StepResult
 {
-    static private readonly ConcurrentDictionary<string, Session<TTransition, TStepInput, TStepResult>> Sessions = new ConcurrentDictionary<string, Session<TTransition, TStepInput, TStepResult>>();
+    static private readonly ConcurrentDictionary<string, Session<TTransition, TStepInput>> Sessions = new ConcurrentDictionary<string, Session<TTransition, TStepInput>>();
 
-    public static Session<TTransition, TStepInput, TStepResult> GetSessions(string user) => Sessions.GetOrAdd(user, new TSession());
+    public static Session<TTransition, TStepInput> GetSessions(string user) => Sessions.GetOrAdd(user, new TSession());
 }
 

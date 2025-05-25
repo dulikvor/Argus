@@ -2,20 +2,20 @@ namespace Argus.Common.PromptDescriptors
 {
     public class PromptDescriptorFactory : IPromptDescriptorFactory
     {
-        private readonly Dictionary<string, IStatePromptDescriptor> PromptDescriptors = new();
+        private readonly Dictionary<string, IPromptDescriptor> PromptDescriptors = new();
 
-        public PromptDescriptorFactory(IEnumerable<IStatePromptDescriptor> promptDescriptors)
+        public PromptDescriptorFactory(IEnumerable<IPromptDescriptor> promptDescriptors)
         {
             foreach (var descriptor in promptDescriptors)
             {
-                if (descriptor is IStatePromptDescriptor statePromptDescriptor)
+                if (descriptor is IPromptDescriptor statePromptDescriptor)
                 {
                     PromptDescriptors[statePromptDescriptor.DescriptorType] = statePromptDescriptor;
                 }
             }
         }
 
-        public IStatePromptDescriptor GetPromptDescriptor(string descriptorType)
+        public IPromptDescriptor GetPromptDescriptor(string descriptorType)
         {
             if (PromptDescriptors.TryGetValue(descriptorType, out var descriptor))
             {

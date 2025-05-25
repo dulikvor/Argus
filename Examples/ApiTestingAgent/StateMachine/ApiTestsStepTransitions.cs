@@ -9,6 +9,7 @@
         CommandDiscovery,
         ExpectedOutcome,
         CommandInvocation,
+        CommandInvocationAnalysis,
         Any
     }
 }

@@ -99,7 +99,6 @@ namespace Argus.Contracts.OpenAI
                     TotalTokens = streamingChatCompletionUpdate.Usage.TotalTokenCount
                 }
                 : null;
-            CreatedAt = streamingChatCompletionUpdate.CreatedAt.Ticks;
         }
 
         public CoPilotChatResponseMessage(string content, ChatCompletion chatCompletion, bool isUnconcluded)

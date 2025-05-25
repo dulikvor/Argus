@@ -72,6 +72,9 @@ namespace ApiTestingAgent.PromptDescriptor
                 public const string ResponseContent = "ResponseContent";
                 public const string CommandInvocationPromptKey = "CommandInvocationPromptKey";
                 public const string CommandInvocationReturnedOutputKey = "CommandInvocationReturnedOutputKey";
+                public const string CommandInvocationHttpResultExplanationPromptKey = "CommandInvocationHttpResultExplanationPromptKey";
+                public const string CommandInvocationDetectNextStatePromptKey = "CommandInvocationDetectNextStatePromptKey";
+                public const string CommandInvocationDetectNextStateOutputKey = "CommandInvocationDetectNextStateOutputKey";
             }
         }
     }

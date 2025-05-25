@@ -5,11 +5,12 @@ using Argus.Clients.GitHubLLMQuery;
 using Argus.Common.Data;
 using Argus.Common.Functions;
 using Argus.Common.PromptDescriptors;
+using Argus.Common.Retrieval;
 using Argus.Common.StateMachine;
 using Argus.Common.Web;
 using Argus.Contracts.OpenAI;
 using Argus.Data;
-using ApiTestsStateContext = Argus.Common.StateMachine.StateContext<ApiTestingAgent.StateMachine.ApiTestStateTransitions, Argus.Common.StateMachine.StepInput, Argus.Common.StateMachine.StepResult>;
+using ApiTestsStateContext = Argus.Common.StateMachine.StateContext<ApiTestingAgent.StateMachine.ApiTestStateTransitions, Argus.Common.StateMachine.StepInput>;
 
 namespace ApiTestingAgent.Services
 {
@@ -19,18 +20,21 @@ namespace ApiTestingAgent.Services
         private readonly IPromptDescriptorFactory _promptDescriptorFactory;
         private readonly IFunctionDescriptorFactory _functionDescriptorFactory;
         private readonly IResponseStreamWriter<ServerSentEventsStreamWriter> _responseStreamWriter;
+        private readonly ISemanticStore _semanticStore;
 
         public ApiTestService(
             IServiceProvider serviceProvider,
             IGitHubLLMQueryClient gitHubLLMQueryClient,
             IPromptDescriptorFactory promptDescriptorFactory, 
             IFunctionDescriptorFactory functionDescriptorFactory, 
-            IResponseStreamWriter<ServerSentEventsStreamWriter> responseStreamWriter)
+            IResponseStreamWriter<ServerSentEventsStreamWriter> responseStreamWriter,
+            ISemanticStore semanticStore)
         {
             _gitHubLLMQueryClient = gitHubLLMQueryClient;
             _promptDescriptorFactory = promptDescriptorFactory;
             _functionDescriptorFactory = functionDescriptorFactory;
             _responseStreamWriter = responseStreamWriter;
+            _semanticStore = semanticStore;
         }
 
         public async Task InvokeNext(HttpContext httpContext, CoPilotChatRequestMessage coPilotChatRequestMessage)
@@ -40,13 +44,13 @@ namespace ApiTestingAgent.Services
             ApiTestStateTransitions transition = default;
             ApiTestsStateContext stateContext = default;
             if (session.CurrentStep != null)
-            {
+            { 
                 stateContext = new ApiTestsStateContext(session.CurrentStep);
                 transition = session.CurrentTransition;
             }
             else
             {
-                stateContext = new ApiTestsStateContext(new ServiceInformationState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
+                stateContext = new ApiTestsStateContext(new ServiceInformationState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore));
                 transition = ApiTestStateTransitions.ServiceInformationDiscovery;
             }
 

@@ -1,6 +1,6 @@
 namespace Argus.Common.PromptDescriptors;
 
-public interface IStatePromptDescriptor
+public interface IPromptDescriptor
 {
     public string GetPrompt(string key);
     public string GetStructuredResponse(string key);

@@ -2,7 +2,7 @@ using Argus.Common.StructuredResponses;
 
 namespace Argus.Common.PromptDescriptors;
 
-public abstract class BaseStatePromptDescriptor : IStatePromptDescriptor
+public abstract class BasePromptDescriptor : IPromptDescriptor
 {
     protected readonly Dictionary<string, string> Prompts = new();
     protected readonly StructuredResponsesDictionary StructuredResponses = new();

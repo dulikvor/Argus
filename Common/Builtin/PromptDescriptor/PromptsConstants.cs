@@ -2,9 +2,23 @@
 {
     public static class PromptsConstants
     {
-        public static class Keys
+        public static class Prompts
         {
-            public const string EndState = $"{nameof(EndState)}";
+            public static class Keys
+            {
+                public const string EndState = $"{nameof(EndState)}";
+                public const string Context = $"{nameof(Context)}";
+                public const string CurrentState = $"{nameof(CurrentState)}";
+                public const string CustomerConsentStateTransition = $"CustomerConsentStateTransition";
+            }
+        }
+
+        public static class StructuredResponses
+        {
+            public static class Keys
+            {
+                public const string CustomerConsentStateTransitionResponseSchema = "CustomerConsentStateTransitionResponseSchema";
+            }
         }
     }
 }

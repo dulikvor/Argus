@@ -1,3 +1,4 @@
+using Argus.Common.StructuredResponses;
 using System.Text.Json.Serialization;
 
 namespace ApiTestingAgent.StructuredResponses;
@@ -43,17 +44,13 @@ public class CommandDiscoveryOutput : BaseOutput
         return formattedMessage;
     }
 
-    public override string OutputIncrementalResult()
+    public override string InstructionsToUserOnDetected()
     {
-        return $"Incremental Result: {ToString()}";
+        return InstructionsToUser;
     }
 
-    public override string OutputResult()
+    public override string OutputIncrementalResult()
     {
-        var prefix = CommandIsValid ? "✅" : string.Empty;
-        var formattedMessage = $"{prefix} {InstructionsToUser}\n\n";
-        formattedMessage += ToString();
-
-        return formattedMessage;
+        return ToString();
     }
 }

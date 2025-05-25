@@ -34,6 +34,23 @@ namespace Argus.Contracts.OpenAI
             return CreateSingleMessageRequest(userMessage);
         }
 
+        public string GetUserFirstAsPlainText()
+        {
+            var userMessage = Messages?.FirstOrDefault(m => m.Role == ChatMessageRole.User);
+            return userMessage.Content;
+        }
+
+        public CoPilotChatRequestMessage CreateSingleMessageRequest(string message)
+        {
+            return new CoPilotChatRequestMessage
+            {
+                Model = Model,
+                Messages = message != null
+                    ? new List<CopilotChatMessage> { new CopilotChatMessage { Role = ChatMessageRole.User, Content = message } }
+                    : null
+            };
+        }
+
         private CoPilotChatRequestMessage CreateSingleMessageRequest(CopilotChatMessage message)
         {
             return new CoPilotChatRequestMessage

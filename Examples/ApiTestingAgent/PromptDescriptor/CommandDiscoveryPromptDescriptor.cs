@@ -3,7 +3,7 @@ using Argus.Common.PromptDescriptors;
 using System.Text.Json;
 
 namespace ApiTestingAgent.PromptDescriptor;
-public class CommandDiscoveryPromptDescriptor : BaseStatePromptDescriptor
+public class CommandDiscoveryPromptDescriptor : BasePromptDescriptor
 {
     public override string DescriptorType => nameof(CommandDiscoveryPromptDescriptor);
 
@@ -34,12 +34,15 @@ public class CommandDiscoveryPromptDescriptor : BaseStatePromptDescriptor
             type = "object",
             properties = new
             {
-            commandIsValid = new { type = "boolean", description = "Indicates whether the command is valid. A command is valid if no placeholders exist in the URI and the URI pattern and method match a known REST API discovered at the RestDiscoveryState." },
-            instructionsToUser = new { type = "string", description = "Instructions for the user in case the command is invalid or missing. Provide clear and actionable steps to correct the issue." },
-            httpMethod = new { type = "string", description = "The HTTP method of the selected command." },
-            requestUri = new { type = "string", description = "The request URI of the selected command. The URI must include the service domain discovered at the service information state." },
-            content = new { type = "string", description = "The JSON content of the selected command." },
-            commandDiscoveryDetectedInCurrentIteration = new { type = "boolean", description = "Indicates if a change due to user request was detected, such as updates to the selected command method, URI, placeholders, or request content." }
+                commandIsValid = new { type = "boolean", description = "Indicates whether the command is valid. A command is valid if no placeholders exist in the URI and the URI pattern and method match a known REST API discovered at the RestDiscoveryState." },
+                instructionsToUser = new { 
+                    type = "string", 
+                    description = "A detailed message that includes the full HTTP method, request URI, and content of the detected command. If no valid command is detected, it should clearly inform the user of the issue and provide guidance on how to proceed. If a command is known, it should include the HTTP status, resource URI, and content in a properly styled format."
+                },
+                httpMethod = new { type = "string", description = "The HTTP method of the selected command." },
+                requestUri = new { type = "string", description = "The request URI of the selected command. The URI must include the service domain discovered at the service information state." },
+                content = new { type = "string", description = "The JSON content of the selected command." },
+                commandDiscoveryDetectedInCurrentIteration = new { type = "boolean", description = "Indicates if a change due to user request was detected, such as updates to the selected command method, URI, placeholders, or request content." }
             },
             required = new[] { "commandIsValid", "commandDiscoveryDetectedInCurrentIteration", "instructionsToUser", "httpMethod", "requestUri", "content" }
         };

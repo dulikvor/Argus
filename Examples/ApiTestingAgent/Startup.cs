@@ -1,5 +1,6 @@
 using ApiTestingAgent.PromptDescriptor;
 using ApiTestingAgent.Services;
+using Argus.Clients.AzureEmbeddingClient;
 using Argus.Clients.GitHubAuthentication;
 using Argus.Clients.GitHubLLMQuery;
 using Argus.Clients.GitHubRawContentCdnClient;
@@ -10,6 +11,7 @@ using Argus.Common.Clients;
 using Argus.Common.Functions;
 using Argus.Common.GitHubAuthentication;
 using Argus.Common.PromptDescriptors;
+using Argus.Common.Retrieval;
 using Argus.Common.Web;
 using Argus.Data;
 
@@ -33,21 +35,31 @@ public class Startup
 
         services.AddSingleton<IFunctionDescriptorFactory, FunctionDescriptorFactory>();
         services.AddSingleton<IFunctionDescriptor, GetGitHubRawContentFunctionDescriptor>();
+        services.AddSingleton<IFunctionDescriptor, RestToolFunctionDescriptor>();
 
-        services.AddSingleton<IStatePromptDescriptor, EndPromptDescriptor>();
-        services.AddSingleton<IStatePromptDescriptor, ApiTestsPromptDescriptor>();
-        services.AddSingleton<IStatePromptDescriptor, ServiceInformationPromptDescriptor>();
-        services.AddSingleton<IStatePromptDescriptor, CommandDiscoveryPromptDescriptor>();
-        services.AddSingleton<IStatePromptDescriptor, RestDiscoveryPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, EndPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, CurrentStatePromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, CustomerConsentStateTransitionPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, ContextPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, ApiTestsPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, ServiceInformationPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, CommandDiscoveryPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, RestDiscoveryPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, CommandInvocationPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, ExpectedOutcomePromptDescriptor>();
         services.AddSingleton<IPromptDescriptorFactory, PromptDescriptorFactory>();
         services.AddSingleton<IApiTestService, ApiTestService>();
 
         services.AddSingleton<IResponseStreamWriter<ServerSentEventsStreamWriter>, ServerSentEventsStreamWriter>();
+        services.AddSingleton<ISemanticStore, SemanticStore>();
 
         services.AddSingleton<ITypedHttpServiceClientFactory, TypedHttpServiceClientFactory>();
         services.AddServiceHttpClient<IGitHubAuthenticationClient, GitHubAuthenticationClient, GitHubAuthenticationClientOptions>(GitHubAuthenticationClient.TokenCreator);
         services.AddServiceHttpClient<IGitHubRawContentCdnClient, GitHubRawContentCdnClient, GitHubRawContentCdnClientOptions>();
-        services.AddServiceHttpClient<IRestClient, RestClient>();
+        services.AddServiceHttpClient<IRestClient, RestClient>(ignoreServerCertificateValidation: true);
+
+        services.AddServiceHttpClient<IAzureEmbeddingClient, AzureEmbeddingClient, AzureEmbeddingClientOptions>(AzureAuthenticationTokenProvider.TokenCreator);
+
         services.AddManagedServiceClient<IGitHubLLMQueryClient, GitHubLLMQueryClient>();
     }
 
@@ -86,6 +98,10 @@ public class Startup
             .ValidateOnStart();
         services.AddOptions<GitHubLLMQueryClientOptions>()
             .Bind(_configuration.GetSection(nameof(ServiceConfiguration.GitHubLLMQueryClient)))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddOptions<AzureEmbeddingClientOptions>()
+            .Bind(_configuration.GetSection(nameof(ServiceConfiguration.AzureEmbeddingClient)))
             .ValidateDataAnnotations()
             .ValidateOnStart();
     }

@@ -15,7 +15,7 @@ namespace Argus.Clients.GitHubAuthentication
             _httpClient = httpClient;
         }
 
-        public static Task<(string Schema, string Token)> TokenCreator()
+        public static Task<(string Schema, string Token)> TokenCreator(string scope)
         {
             var token = CallContext.GetData(ServiceConstants.Authentication.GitHubTokenKey) as string;
             return Task.FromResult((JwtBearerDefaults.AuthenticationScheme, token!));

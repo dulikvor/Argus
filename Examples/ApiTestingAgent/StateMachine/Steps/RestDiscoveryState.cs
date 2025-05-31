@@ -1,49 +1,53 @@
 ﻿using ApiTestingAgent.PromptDescriptor;
+using ApiTestingAgent.Services;
 using ApiTestingAgent.StructuredResponses;
 using Argus.Clients.GitHubLLMQuery;
 using Argus.Common.Builtin.Functions;
+using Argus.Common.Builtin.StructuredResponse;
 using Argus.Common.Clients;
 using Argus.Common.Functions;
 using Argus.Common.PromptDescriptors;
+using Argus.Common.Retrieval;
 using Argus.Common.StateMachine;
 using Argus.Contracts.OpenAI;
 using OpenAI.Chat;
+using System.Text;
 using System.Text.Json;
-using ApiTestingAgent.Services;
-using static ApiTestingAgent.PromptDescriptor.PromptsConstants;
 
 namespace ApiTestingAgent.StateMachine.Steps
 {
-    public class RestDiscoveryState : State<ApiTestStateTransitions, StepInput, StepResult>
+    public class RestDiscoveryState : State<ApiTestStateTransitions, StepInput>
     {
-        private readonly IGitHubLLMQueryClient _gitHubLLMQueryClient;
-
         public override string GetName() => nameof(RestDiscoveryState);
 
         public RestDiscoveryState(
             IGitHubLLMQueryClient gitHubLLMQueryClient,
             IPromptDescriptorFactory promptDescriptorFactory,
-            IFunctionDescriptorFactory functionDescriptorFactory)
-            :base(promptDescriptorFactory, functionDescriptorFactory)
+            IFunctionDescriptorFactory functionDescriptorFactory, 
+            ISemanticStore semanticStore)
+            :base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, gitHubLLMQueryClient)
         {
-            _gitHubLLMQueryClient = gitHubLLMQueryClient;
         }
 
         public override async Task<(StepResult, ApiTestStateTransitions)> HandleState(
-            StateContext<ApiTestStateTransitions, StepInput, StepResult> context, 
-            Session<ApiTestStateTransitions, StepInput, StepResult> session, 
+            StateContext<ApiTestStateTransitions, StepInput> context, 
+            Session<ApiTestStateTransitions, StepInput> session, 
             ApiTestStateTransitions transition, 
             StepInput stepInput)
         {
+            if (_isFirstRun)
+            {
+                return await Introduction(stepInput.CoPilotChatRequestMessage, transition);
+            }
             switch (transition)
             {
                 case ApiTestStateTransitions.RestDiscovery:
                     {
-                        return await RestDiscovery(context, session, stepInput.CoPilotChatRequestMessage, stepInput.PreviousStepResult?.PreviousChatCompletion);
+                        return await RestDiscovery(context, session, stepInput);
                     }
                 case ApiTestStateTransitions.RawContentGet:
                     {
-                        return await GetRawContent(context, session, stepInput.PreviousStepResult.FunctionResponses.First(), stepInput.PreviousStepResult.PreviousChatCompletion);
+                        return await GetRawContent(context, session, stepInput);
                     }
                 default:
                     {
@@ -54,14 +58,13 @@ namespace ApiTestingAgent.StateMachine.Steps
         }
 
         private async Task<(StepResult, ApiTestStateTransitions)> GetRawContent(
-            StateContext<ApiTestStateTransitions, StepInput, StepResult> context, 
-            Session<ApiTestStateTransitions, StepInput, StepResult> session,
-            FunctionResponse functionResponse,
-            ChatCompletion previousChatCompletion)
+            StateContext<ApiTestStateTransitions, StepInput> context, 
+            Session<ApiTestStateTransitions, StepInput> session,
+            StepInput stepInput)
         {
             var concreteFunctionDescriptor = (ConcreteFunctionDescriptor<Task<string>, string, string, string, string>)_functionDescriptorFactory.GetFunctionDescriptor(nameof(GetGitHubRawContentFunctionDescriptor));
 
-            var arguments = concreteFunctionDescriptor.GetParameters<GetGitHubRawContentFunctionDescriptor.GetGitHubRawContentParametersType>(JsonSerializer.Serialize(functionResponse.FunctionArguments));
+            var arguments = concreteFunctionDescriptor.GetParameters<GetGitHubRawContentFunctionDescriptor.GetGitHubRawContentParametersType>(JsonSerializer.Serialize(stepInput.PreviousStepResult.FunctionResponses.First().FunctionArguments));
 
             string rawContent = default;
             var toolArguments = $"{arguments.User}/{arguments.Repo}/{arguments.Branch}/{arguments.PathToFile}";
@@ -79,14 +82,20 @@ namespace ApiTestingAgent.StateMachine.Steps
                      StepSuccess = false,
                      CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>()
                      {
-                         new CoPilotChatResponseMessage($"The GetRawContent function failed to execute. {errorMessage}", previousChatCompletion, false)
+                         new CoPilotChatResponseMessage($"The GetRawContent function failed to execute. {errorMessage}", stepInput.PreviousStepResult.PreviousChatCompletion, false)
                      }
                  },
                  ApiTestStateTransitions.RestDiscovery);
             }
 
-            session.AddStepResult(new(GetName(), string.Format(PromptsConstants.SessionResult.Formats.SessionResultFunctionSourceArgumentsFormat, concreteFunctionDescriptor.ToolDefinition.FunctionName)), toolArguments);
-            session.AddStepResult(new(GetName(), string.Format(PromptsConstants.SessionResult.Formats.SessionResultFunctionFormat, concreteFunctionDescriptor.ToolDefinition.FunctionName)), rawContent);
+            var inputText = stepInput.CoPilotChatRequestMessage.GetUserFirstAsPlainText();
+            var sb = new StringBuilder();
+            sb.AppendLine($"Function called: {concreteFunctionDescriptor.ToolDefinition.FunctionName}");
+            sb.AppendLine($"Function arguments: {toolArguments}");
+            sb.AppendLine($"Function Result: {rawContent}");
+
+            _semanticStore.Add(inputText, sb.ToString());
+
             session.SetCurrentStep(this, ApiTestStateTransitions.RestDiscovery);
             return new(
                     new StepResult
@@ -97,40 +106,29 @@ namespace ApiTestingAgent.StateMachine.Steps
         }
 
         private async Task<(StepResult, ApiTestStateTransitions)> RestDiscovery(
-            StateContext<ApiTestStateTransitions, StepInput, StepResult> context,
-            Session<ApiTestStateTransitions, StepInput, StepResult> session, 
-            CoPilotChatRequestMessage coPilotChatRequestMessage,
-            ChatCompletion previousChatCompletion)
+            StateContext<ApiTestStateTransitions, StepInput> context,
+            Session<ApiTestStateTransitions, StepInput> session,
+            StepInput stepInput)
         {
-
-            var confirmationState = coPilotChatRequestMessage.GetUserFirst()?.GetConfirmation(session.CurrentConfirmationId);
-            if (confirmationState == ConfirmationState.Accepted)
+            var (isConsentGiven, action, chatCompletion) = await CheckCustomerConsent(session, stepInput);
+            if (action == ConsentAction.ConsentApproval && isConsentGiven)
             {
-                session.ResetConfirmationId();
-                context.SetState(new CommandDiscoveryState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
-                session.SetCurrentStep(context.GetCurrentState(), ApiTestStateTransitions.CommandDiscovery);
-                return new(
-                        new StepResult
-                        {
-                            StepSuccess = true,
-                            CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>()
-                            {
-                                    new CoPilotChatResponseMessage("rest approved.", previousChatCompletion, false)
-                            }
-                        },
-                        ApiTestStateTransitions.CommandDiscovery);
+                return TransitionToNextState(
+                    context,
+                    session,
+                    chatCompletion,
+                    new CommandInvocationState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore),
+                    ApiTestStateTransitions.CommandInvocationAnalysis);
             }
-
-            var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(RestDiscoveryPromptDescriptor));
-            coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryPromptKey));
-
-            var structuredOutput = new OpenAIStructuredOutput(
-                nameof(PromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryReturnedOutputKey),
-                concretePromptDescriptor.GetStructuredResponse(PromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryReturnedOutputKey));
 
             var concreteFunctionDescriptor = _functionDescriptorFactory.GetFunctionDescriptor(nameof(GetGitHubRawContentFunctionDescriptor));
 
-            var chatCompletionResponse = await _gitHubLLMQueryClient.Query<RestDiscoveryOutput>(coPilotChatRequestMessage, structuredOutput, new List<ChatTool> { concreteFunctionDescriptor.ToolDefinition });
+            var chatCompletionResponse = await QueryLLM<RestDiscoveryOutput>(
+                stepInput.CoPilotChatRequestMessage,
+                nameof(RestDiscoveryPromptDescriptor),
+                PromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryPromptKey, 
+                PromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryReturnedOutputKey,
+                new List<ChatTool> { concreteFunctionDescriptor.ToolDefinition });
 
             if(chatCompletionResponse.IsToolCall)
             {
@@ -146,46 +144,30 @@ namespace ApiTestingAgent.StateMachine.Steps
             }
             else
             {
-                var restDiscovery = chatCompletionResponse.StructuredOutput;
+                var structuredOutput = chatCompletionResponse.StructuredOutput;
                 var sessionResources = (session as ApiTestSession).DetectedResources;
-                if (restDiscovery.RestDiscoveryDetectedInCurrentIteration)
+                if (structuredOutput.RestDiscoveryDetectedInCurrentIteration)
                 {
                     // Update session on iteration only if results are detected
-                    if (sessionResources != null && restDiscovery.DetectedResources.Any())
+                    if (sessionResources != null && structuredOutput.DetectedResources.Any())
                     {
-                        sessionResources.MergeOrUpdate(restDiscovery.DetectedResources);
+                        sessionResources.MergeOrUpdate(structuredOutput.DetectedResources);
                     }
                 }
 
-                if (sessionResources != null && restDiscovery.DetectedResources.Any())
-                {
-                    var confirmation = CopilotConfirmationRequestMessage.GenerateConfirmationData();
-                    session.SetCurrentConfirmationId(confirmation.Id);
-                    return new(
-                            new StepResult
-                            {
-                                StepSuccess = false,
-                                ConfirmationMessage = new CopilotConfirmationRequestMessage
-                                {
-                                    Title = "Confirm Detected Resources",
-                                    Message = restDiscovery.OutputResult(),
-                                    Confirmation = confirmation,
-                                },
-                                PreviousChatCompletion = chatCompletionResponse.ChatCompletion
-                            },
-                            ApiTestStateTransitions.RestDiscovery);
-                }
+                // Include detected resources in the instructions to the user
+                var detectedResourcesSummary = structuredOutput.DetectedResources.Any()
+                    ? string.Join("\n", structuredOutput.DetectedResources.Select(r => $"- {r.ResourceDepiction} ({r.HttpMethod})"))
+                    : "No resources detected.";
 
-                return new(
-                    new StepResult
-                    {
-                        StepSuccess = false,
-                        CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>()
-                        {
-                            new CoPilotChatResponseMessage(restDiscovery.OutputIncrementalResult(), chatCompletionResponse.ChatCompletion, false)
-                        }
-                    },
-                    ApiTestStateTransitions.RestDiscovery);
+                return DetectAndConfirm(
+                    session,
+                    stepInput,
+                    chatCompletionResponse,
+                    output => sessionResources != null && output.DetectedResources.Any(),
+                    output => $"The following resources were detected:\n{detectedResourcesSummary}\n\n{output.InstructionsToUserOnDetected()}",
+                    ApiTestStateTransitions.RestDiscovery,
+                    true);
             }
                 
         }

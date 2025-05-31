@@ -1,41 +1,36 @@
 using Argus.Common.StructuredResponses;
-using Argus.Contracts.OpenAI;
 using System.Text.Json.Serialization;
-using static ApiTestingAgent.PromptDescriptor.PromptsConstants;
 
 namespace ApiTestingAgent.StructuredResponses;
 public class ServiceInformationDomainOutput : BaseOutput
 {
-    [JsonPropertyName("serviceDomain")]
+    [JsonPropertyName("detectedDomain")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public string ServiceDomain { get; set; }
+    public string DetectedDomain { get; set; }
+
+    [JsonPropertyName("instructionsToUserOnDomainDetected")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string InstructionsToUserOnDomainDetected { get; set; }
 
     [JsonPropertyName("stepIsConcluded")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool StepIsConcluded { get; set; }
 
-    [JsonPropertyName("instructionsToUser")]
+    [JsonPropertyName("instructionsToUserOnFailure")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public string InstructionsToUser { get; set; }
+    public string InstructionsToUserOnFailure { get; set; }
 
     [JsonPropertyName("serviceDomainDetectedInCurrentIteration")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool ServiceDomainDetectedInCurrentIteration { get; set; }
 
-    public override string ToString()
+    public override string InstructionsToUserOnDetected()
     {
-        return $"\nSummary: Known domain is {ServiceDomain}";
+        return InstructionsToUserOnDomainDetected;
     }
 
     public override string OutputIncrementalResult()
     {
-        return $"Incremental Result: {ToString()}";
-    }
-
-    public override string OutputResult()
-    {
-        var prefix = StepIsConcluded ? CopilotChatIcons.Checkmark : string.Empty;
-        var summary = StepIsConcluded ? ToString() : string.Empty;
-        return $"{prefix} {InstructionsToUser} {summary}\n\n";
+        return $"Detected Domain: {DetectedDomain}";
     }
 }

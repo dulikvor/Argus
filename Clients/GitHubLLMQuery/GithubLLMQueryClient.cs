@@ -1,4 +1,5 @@
 ﻿using Argus.Common.Data;
+using Argus.Common.StructuredResponses;
 using Argus.Contracts.OpenAI;
 using Argus.Data;
 using Microsoft.Extensions.Options;
@@ -55,10 +56,9 @@ namespace Argus.Clients.GitHubLLMQuery
             return result;
         }
 
-        public async Task<ChatCompletionStructuredResponse<TResponse>> Query<TResponse>(CoPilotChatRequestMessage coPilotChatRequestMessage, OpenAIStructuredOutput structuredOutput, IList<ChatTool> tools, bool toolsRequired = false) where TResponse : class
+        public async Task<ChatCompletionStructuredResponse<TResponse>> Query<TResponse>(CoPilotChatRequestMessage coPilotChatRequestMessage, OpenAIStructuredOutput structuredOutput, IList<ChatTool> tools) where TResponse : class
         {
             ArgumentValidationHelper.Ensure.NotNull(coPilotChatRequestMessage.Model, "Model");
-            ArgumentValidationHelper.Ensure.NotNull(structuredOutput, "StructuredOutput");
 
             var userName = CallContext.GetData(ServiceConstants.Authentication.UserNameKey) as string;
             var client = GetOrCreateClient(userName);

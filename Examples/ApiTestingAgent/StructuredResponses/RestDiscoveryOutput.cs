@@ -1,5 +1,5 @@
+using Argus.Common.StructuredResponses;
 using System.Text.Json.Serialization;
-using static ApiTestingAgent.PromptDescriptor.PromptsConstants;
 
 namespace ApiTestingAgent.StructuredResponses;
 
@@ -40,14 +40,12 @@ public class RestDiscoveryOutput : BaseOutput
 
     public override string OutputIncrementalResult()
     {
-        return $"Incremental Result: {ToString()}";
+        return ToString();
     }
 
-    public override string OutputResult()
+    public override string InstructionsToUserOnDetected()
     {
-        var formattedMessage = $"{InstructionsToUser}\n\n";
-        formattedMessage += ToString();
-        return formattedMessage;
+        return InstructionsToUser;
     }
 }
 

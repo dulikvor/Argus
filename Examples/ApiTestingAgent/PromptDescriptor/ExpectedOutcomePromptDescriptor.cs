@@ -3,7 +3,7 @@ using Argus.Common.PromptDescriptors;
 using System.Text.Json;
 
 namespace ApiTestingAgent.PromptDescriptor;
-public class ExpectedOutcomePromptDescriptor : BaseStatePromptDescriptor
+public class ExpectedOutcomePromptDescriptor : BasePromptDescriptor
 {
     public override string DescriptorType => nameof(ExpectedOutcomePromptDescriptor);
 
@@ -27,12 +27,13 @@ public class ExpectedOutcomePromptDescriptor : BaseStatePromptDescriptor
             type = "object",
             properties = new
             {
-                stepIsConcluded = new { type = "boolean", description = "Whether the step was concluded successfully." },
+                isExpectedDetected = new { type = "boolean", description = "Whether the expected outcome was detected successfully." },
                 expectedHttpStatusCode = new { type = "integer", description = "The expected HTTP status code for the API response." },
                 expectedErrorMessage = new { type = "string", description = "The expected error message, if any." },
-                expectedResponseContent = new { type = "string", description = "The expected content of the API response, if any." }
+                expectedResponseContent = new { type = "string", description = "The expected content of the API response, if any." },
+                instructionsToUserOnDetectedCommand = new { type = "string", description = "A message for the user that includes the full HTTP method, request URI, content of the detected command, or guidance if no valid command is detected." },
             },
-            required = new[] { "stepIsConcluded" }
+            required = new[] { "isExpectedDetected", "expectedHttpStatusCode", "expectedErrorMessage", "expectedResponseContent", "instructionsToUserOnDetectedCommand" }
         };
 
         StructuredResponses.Add<ExpectedOutcomeOutput>(PromptsConstants.ExpectedOutcome.Keys.ExpectedOutcomeReturnedOutputKey,

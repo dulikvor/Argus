@@ -6,7 +6,7 @@ using Argus.Common.StateMachine;
 
 namespace ApiTestingAgent.Services;
 
-public class ApiTestSession : Session<ApiTestStateTransitions, StepInput, StepResult>
+public class ApiTestSession : Session<ApiTestStateTransitions, StepInput>
 {
     public DetectedResources DetectedResources
     {

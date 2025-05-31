@@ -1,62 +1,68 @@
 ﻿using ApiTestingAgent.PromptDescriptor;
 using ApiTestingAgent.StructuredResponses;
 using Argus.Clients.GitHubLLMQuery;
+using Argus.Common.Builtin.StructuredResponse;
 using Argus.Common.Functions;
 using Argus.Common.PromptDescriptors;
+using Argus.Common.Retrieval;
 using Argus.Common.StateMachine;
 using Argus.Contracts.OpenAI;
 
 namespace ApiTestingAgent.StateMachine.Steps
 {
-    public class ServiceInformationState : State<ApiTestStateTransitions, StepInput, StepResult>
+    public class ServiceInformationState : State<ApiTestStateTransitions, StepInput>
     {
-        private IGitHubLLMQueryClient _gitHubLLMQueryClient;
 
         public override string GetName() => nameof(ServiceInformationState);
 
-        public ServiceInformationState(IGitHubLLMQueryClient gitHubLLMQueryClient, IPromptDescriptorFactory promptDescriptorFactory, IFunctionDescriptorFactory functionDescriptorFactory)
-            :base(promptDescriptorFactory, functionDescriptorFactory)
+        public ServiceInformationState(
+            IGitHubLLMQueryClient gitHubLLMQueryClient, 
+            IPromptDescriptorFactory promptDescriptorFactory, 
+            IFunctionDescriptorFactory functionDescriptorFactory, 
+            ISemanticStore semanticStore)
+            :base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, gitHubLLMQueryClient)
         {
-            _gitHubLLMQueryClient = gitHubLLMQueryClient;
         }
 
         public override async Task<(StepResult, ApiTestStateTransitions)> HandleState(
-            StateContext<ApiTestStateTransitions, StepInput, StepResult> context, 
-            Session<ApiTestStateTransitions, StepInput, StepResult> session, 
+            StateContext<ApiTestStateTransitions, StepInput> context, 
+            Session<ApiTestStateTransitions, StepInput> session, 
             ApiTestStateTransitions transition,
             StepInput stepInput)
         {
             ApiTestStateTransitions nextTransition = transition;
+            if(_isFirstRun)
+            {
+                return await Introduction(stepInput.CoPilotChatRequestMessage, nextTransition);
+            }
             if (transition == ApiTestStateTransitions.ServiceInformationDiscovery)
             {
-                var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(ServiceInformationPromptDescriptor));
-
-                var coPilotChatRequestMessage = stepInput.CoPilotChatRequestMessage;
-                coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey));
-
-                var structuredOutput = new OpenAIStructuredOutput(
-                    nameof(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey),
-                    concretePromptDescriptor.GetStructuredResponse(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey));
-
-                var chatCompletionResponse = await _gitHubLLMQueryClient.Query<ServiceInformationDomainOutput>(coPilotChatRequestMessage, structuredOutput, null);
-                var serviceInformationDomain = chatCompletionResponse.StructuredOutput;
-                if(serviceInformationDomain.ServiceDomainDetectedInCurrentIteration)
+                var (isConsentGiven, action, chatCompletion) = await CheckCustomerConsent(session, stepInput);
+                if (action == ConsentAction.ConsentApproval && isConsentGiven)
                 {
-                    session.AddStepResult(new(GetName(), PromptsConstants.SessionResult.Keys.SessionResultSessionDomain), serviceInformationDomain.ServiceDomain);
-                }
-                if (serviceInformationDomain.StepIsConcluded)
-                {
-                    context.SetState(new RestDiscoveryState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory));
-                    nextTransition = ApiTestStateTransitions.RestDiscovery;
+                    return TransitionToNextState(
+                        context,
+                        session,
+                        chatCompletion,
+                        new RestDiscoveryState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore),
+                        ApiTestStateTransitions.RestDiscovery);
                 }
 
-                return new (
-                    new StepResult()
-                    {
-                        StepSuccess = serviceInformationDomain.StepIsConcluded,
-                        CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>() { new CoPilotChatResponseMessage(serviceInformationDomain.OutputResult(), chatCompletionResponse.ChatCompletion, serviceInformationDomain.StepIsConcluded) }
-                    },
-                    nextTransition);
+                var chatCompletionStructuredResponse = await QueryLLM<ServiceInformationDomainOutput>(
+                    stepInput.CoPilotChatRequestMessage,
+                    nameof(ServiceInformationPromptDescriptor),
+                    PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey,
+                    PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey,
+                    null);
+
+                return DetectAndConfirm(
+                    session,
+                    stepInput,
+                    chatCompletionStructuredResponse,
+                    output => output.ServiceDomainDetectedInCurrentIteration,
+                    output => output.InstructionsToUserOnDomainDetected,
+                    ApiTestStateTransitions.ServiceInformationDiscovery,
+                    true);
             }
 
             context.OnNonSupportedTransition(transition);

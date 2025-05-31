@@ -1,5 +1,6 @@
 using Argus.Common.Clients;
 using Argus.Common.Data;
+using System.Net;
 using System.Text;
 
 namespace Argus.Clients.RestClient
@@ -13,7 +14,7 @@ namespace Argus.Clients.RestClient
             _httpClient = httpClient;
         }
 
-        public async Task<(int HttpStatusCode, string Content)> InvokeRestTool(string method, string url, Dictionary<string, string> headers, string body)
+        public async Task<(HttpStatusCode HttpStatusCode, string Content)> InvokeRestTool(string method, string url, Dictionary<string, string> headers, string body)
         {
             ArgumentValidationHelper.Ensure.NotNull(method, nameof(method));
             ArgumentValidationHelper.Ensure.NotNull(url, nameof(url));
@@ -36,7 +37,7 @@ namespace Argus.Clients.RestClient
             var response = await _httpClient.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
 
-            return ((int)response.StatusCode, content);
+            return (response.StatusCode, content);
         }
     }
 }

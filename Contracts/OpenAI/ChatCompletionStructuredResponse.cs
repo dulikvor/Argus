@@ -1,14 +1,11 @@
-﻿using OpenAI.Chat;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using Argus.Common.StructuredResponses;
+using OpenAI.Chat;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Argus.Contracts.OpenAI
 {
     public class ChatCompletionStructuredResponse<TStructure>
+        where TStructure : class
     {
         public TStructure StructuredOutput { get; }
         public IList<FunctionResponse> FunctionResponses { get; }
@@ -22,9 +19,17 @@ namespace Argus.Contracts.OpenAI
             if (chatCompletion.FinishReason == ChatFinishReason.Stop)
             {
                 IsToolCall = false;
-                StructuredOutput = JsonSerializer.Deserialize<TStructure>(chatCompletion.Content.First().Text);
+
+                if (typeof(TStructure) == typeof(string))
+                {
+                    StructuredOutput = chatCompletion.Content.First().Text as TStructure;
+                }
+                else
+                {
+                    StructuredOutput = JsonSerializer.Deserialize<TStructure>(chatCompletion.Content.First().Text);
+                }
             }
-            else if(chatCompletion.FinishReason == ChatFinishReason.ToolCalls)
+            else if (chatCompletion.FinishReason == ChatFinishReason.ToolCalls)
             {
                 IsToolCall = true;
                 FunctionResponses = chatCompletion.ToolCalls.Select(tc => new FunctionResponse()
@@ -35,7 +40,7 @@ namespace Argus.Contracts.OpenAI
             }
             else
             {
-                throw new InvalidOperationException($"Chat completion completed with un supported finish reason: {chatCompletion.FinishReason}");
+                throw new InvalidOperationException($"Chat completion completed with unsupported finish reason: {chatCompletion.FinishReason}");
             }
         }
     }

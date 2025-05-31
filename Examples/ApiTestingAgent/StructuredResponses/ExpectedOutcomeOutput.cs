@@ -1,20 +1,24 @@
+using Argus.Common.StructuredResponses;
 using System.Text.Json.Serialization;
 
 namespace ApiTestingAgent.StructuredResponses;
 
 public class ExpectedOutcomeOutput : BaseOutput
 {
-    [JsonPropertyName("stepIsConcluded")]
-    public bool StepIsConcluded { get; set; }
+    [JsonPropertyName("isExpectedDetected")]
+    public bool IsExpectedDetected { get; set; }
 
     [JsonPropertyName("expectedHttpStatusCode")]
-    public int? ExpectedHttpStatusCode { get; set; }
+    public int ExpectedHttpStatusCode { get; set; }
 
     [JsonPropertyName("expectedErrorMessage")]
     public string ExpectedErrorMessage { get; set; }
 
     [JsonPropertyName("expectedResponseContent")]
     public string ExpectedResponseContent { get; set; }
+
+    [JsonPropertyName("instructionsToUserOnDetectedCommand")]
+    public string InstructionsToUserOnDetectedCommand { get; set; }
 
     public override string ToString()
     {
@@ -25,11 +29,11 @@ public class ExpectedOutcomeOutput : BaseOutput
 
     public override string OutputIncrementalResult()
     {
-        return $"Incremental Result: {ToString()}";
+        return ToString();
     }
 
-    public override string OutputResult()
+    public override string InstructionsToUserOnDetected()
     {
-        return $"Final Result: {ToString()}";
+        return InstructionsToUserOnDetectedCommand;
     }
 }

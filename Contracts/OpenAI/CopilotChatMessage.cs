@@ -15,13 +15,17 @@ namespace Argus.Contracts.OpenAI
         [JsonPropertyName("copilot_confirmations")]
         public List<CopilotConfirmationResponseMessage> CopilotConfirmations { get; set; } // List of copilot confirmations.
 
+        [JsonPropertyName("priority")]
+        public SystemMessagePriority? Priority { get; set; } // Nullable priority for system messages.
+
         public CopilotChatMessage Clone()
         {
             return new CopilotChatMessage
             {
                 Role = this.Role,
                 Content = this.Content,
-                CopilotConfirmations = CopilotConfirmations
+                CopilotConfirmations = CopilotConfirmations,
+                Priority = this.Priority
             };
         }
     }

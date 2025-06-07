@@ -11,6 +11,9 @@ namespace ApiTestingAgent.StructuredResponses
         [JsonPropertyName("currentStatus")]
         public string CurrentStatus { get; set; }
 
+        [JsonPropertyName("reasoning")]
+        public string Reasoning { get; set; }
+
         public override string OutputIncrementalResult()
         {
             return CurrentStatus;

@@ -15,6 +15,10 @@ public class Program
             .ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder.UseStartup<Startup>();
+            })
+            .ConfigureAppConfiguration((context, config) =>
+            {
+                config.InitializeServiceConfiguration(context);
             });
     }
 }

@@ -1,25 +1,31 @@
 using ApiTestingAgent.PromptDescriptor;
 using ApiTestingAgent.StructuredResponses;
-using Argus.Clients.GitHubLLMQuery;
+using Argus.Clients.LLMQuery;
 using Argus.Common.Builtin.StructuredResponse;
 using Argus.Common.Functions;
+using Argus.Common.Orchestration;
 using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
 using Argus.Common.StateMachine;
+using Argus.Common.Telemetry;
+using Argus.Common.Web;
 
 namespace ApiTestingAgent.StateMachine.Steps
 {
     public class ExpectedOutcomeState : State<ApiTestStateTransitions, StepInput>
     {
-
         public override string GetName() => nameof(ExpectedOutcomeState);
 
         public ExpectedOutcomeState(
-            IGitHubLLMQueryClient gitHubLLMQueryClient,
+            IOrchestrationService<ApiTestStateTransitions, StepInput> orchestrationService,
             IPromptDescriptorFactory promptDescriptorFactory,
             IFunctionDescriptorFactory functionDescriptorFactory, 
-            ISemanticStore semanticStore)
-            : base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, gitHubLLMQueryClient)
+            ISemanticStore semanticStore,
+            IAzureLLMQueryClient llmQueryClient,
+            ILogger<State<ApiTestStateTransitions, StepInput>> logger,
+            StreamReporter streamReporter,
+            IStateFactory stateFactory)
+            : base(orchestrationService, promptDescriptorFactory, functionDescriptorFactory, semanticStore, llmQueryClient, logger, streamReporter, stateFactory)
         {
         }
 
@@ -29,43 +35,45 @@ namespace ApiTestingAgent.StateMachine.Steps
             ApiTestStateTransitions transition,
             StepInput stepInput)
         {
-            if (_isFirstRun)
+            using var activityScope = ActivityScope.Create(nameof(ExpectedOutcomeState));
+            return await activityScope.Monitor(async () =>
             {
-                return await Introduction(stepInput.CoPilotChatRequestMessage, transition);
-            }
-            
-            if (transition == ApiTestStateTransitions.ExpectedOutcome)
-            {
-                var (isConsentGiven, action, chatCompletion) = await CheckCustomerConsent(session, stepInput);
-                if (action == ConsentAction.ConsentApproval && isConsentGiven)
+                if (transition == ApiTestStateTransitions.ExpectedOutcome)
                 {
-                    return TransitionToNextState(
-                        context,
-                        session,
-                        chatCompletion,
-                        new CommandInvocationState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore),
-                        ApiTestStateTransitions.CommandInvocationAnalysis);
+                    var (isConsentGiven, action, chatCompletion) = await _orchestrationService.CheckCustomerConsent(session, stepInput);
+                    if (action == ConsentAction.ConsentApproval && isConsentGiven)
+                    {
+                        return TransitionToNextState(
+                            context,
+                            session,
+                            chatCompletion,
+                            null,
+                            null,
+                            _stateFactory.Create<CommandInvocationState, ApiTestStateTransitions, StepInput>(),
+                            ApiTestStateTransitions.CommandInvocationAnalysis);
+                    }
+
+                    var chatCompletionStructuredResponse = await _orchestrationService.QueryLLM<ExpectedOutcomeOutput>(
+                        stepInput.CoPilotChatRequestMessage,
+                        nameof(ExpectedOutcomePromptDescriptor),
+                        PromptsConstants.ExpectedOutcome.Keys.ExpectedOutcomePromptKey,
+                        PromptsConstants.ExpectedOutcome.Keys.ExpectedOutcomeReturnedOutputKey,
+                        null);
+
+                    return await _orchestrationService.DetectAndConfirm(
+                            session,
+                            stepInput,
+                            GetStepResultKey(),
+                            chatCompletionStructuredResponse,
+                            output => output.IsExpectedDetected,
+                            output => output.InstructionsToUserOnDetected(),
+                            ApiTestStateTransitions.ExpectedOutcome,
+                            true);
                 }
 
-                var chatCompletionStructuredResponse = await QueryLLM<ExpectedOutcomeOutput>(
-                    stepInput.CoPilotChatRequestMessage,
-                    nameof(ExpectedOutcomePromptDescriptor),
-                    PromptsConstants.ExpectedOutcome.Keys.ExpectedOutcomePromptKey,
-                    PromptsConstants.ExpectedOutcome.Keys.ExpectedOutcomeReturnedOutputKey,
-                    null);
-
-                return DetectAndConfirm(
-                        session,
-                        stepInput,
-                        chatCompletionStructuredResponse,
-                        output => output.IsExpectedDetected,
-                        output => output.InstructionsToUserOnDetected(),
-                        ApiTestStateTransitions.ExpectedOutcome,
-                        true);
-            }
-
-            context.OnNonSupportedTransition(transition);
-            return default;
+                context.OnNonSupportedTransition(transition);
+                return default;
+            });
         }
     }
 }

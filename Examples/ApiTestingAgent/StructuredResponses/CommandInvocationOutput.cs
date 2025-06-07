@@ -3,13 +3,16 @@ using System.Text.Json.Serialization;
 
 namespace ApiTestingAgent.StructuredResponses;
 
-public class CommandInvocationOutput : BaseOutput
+public class CommandInvocationAnalysisOutput : BaseOutput
 {
-    [JsonPropertyName("isExpectedDetected")]
-    public bool IsExpectedDetected { get; set; }
-
     [JsonPropertyName("analysis")]
     public string Analysis { get; set; }
+
+    [JsonPropertyName("outcomeMatched")]
+    public bool OutcomeMatched { get; set; }
+
+    [JsonPropertyName("correctedUserMessage")]
+    public string CorrectedUserMessage { get; set; }
 
     public override string OutputIncrementalResult()
     {

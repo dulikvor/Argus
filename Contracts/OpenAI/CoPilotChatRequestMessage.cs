@@ -78,15 +78,32 @@ namespace Argus.Contracts.OpenAI
             return null;
         }
 
-        public void AddSystemMessage(string content)
+        public void AddSystemMessage(string content, SystemMessagePriority priority = SystemMessagePriority.Low)
         {
             var systemMessage = new CopilotChatMessage
             {
                 Role = ChatMessageRole.System,
-                Content = content
+                Content = content,
+                Priority = priority
             };
             Messages = Messages ?? new List<CopilotChatMessage>();
             Messages.Add(systemMessage);
+        }
+
+        public void ReorderMessagesByRoleAndPriority()
+        {
+            // User messages first (original order), then system messages by priority (lowest to highest)
+            var userMessages = Messages.Where(m => m.Role == ChatMessageRole.User).ToList();
+            var systemMessages = Messages.Where(m => m.Role == ChatMessageRole.System)
+                .OrderBy(m => m.Priority ?? SystemMessagePriority.Low)
+                .ToList();
+            Messages = userMessages.Concat(systemMessages).ToList();
+        }
+
+        public void DeleteAllUserMessages()
+        {
+            // Remove all user messages from the list
+            Messages = Messages?.Where(m => m.Role != ChatMessageRole.User).ToList() ?? new List<CopilotChatMessage>();
         }
 
         public void AddUserMessage(string content)
@@ -98,6 +115,17 @@ namespace Argus.Contracts.OpenAI
             };
             Messages = Messages ?? new List<CopilotChatMessage>();
             Messages.Add(userMessage);
+        }
+
+        public List<string> GetMessagesContent()
+        {
+            var messagesContent = new List<string>();
+            foreach (var message in Messages ?? Enumerable.Empty<CopilotChatMessage>())
+            {
+                messagesContent.Add(message.Content);
+            }
+
+            return messagesContent;
         }
     }
 }

@@ -1,18 +1,24 @@
-using ApiTestingAgent.PromptDescriptor;
+﻿using ApiTestingAgent.PromptDescriptor;
+using ApiTestingAgent.Services;
 using ApiTestingAgent.StructuredResponses;
-using Argus.Clients.GitHubLLMQuery;
+using Argus.Clients.LLMQuery;
 using Argus.Common.Builtin.Functions;
 using Argus.Common.Builtin.StructuredResponse;
-using Argus.Common.Clients;
 using Argus.Common.Functions;
+using Argus.Common.Http;
+using Argus.Common.Orchestration;
 using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
 using Argus.Common.StateMachine;
+using Argus.Common.Telemetry;
+using Argus.Common.Web;
 using Argus.Contracts.OpenAI;
 using OpenAI.Chat;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+
+using BuiltInPromptsConstants = Argus.Common.Builtin.PromptDescriptor.PromptsConstants;
 
 namespace ApiTestingAgent.StateMachine.Steps
 {
@@ -21,11 +27,15 @@ namespace ApiTestingAgent.StateMachine.Steps
         public override string GetName() => nameof(CommandInvocationState);
 
         public CommandInvocationState(
-            IGitHubLLMQueryClient gitHubLLMQueryClient,
+            IOrchestrationService<ApiTestStateTransitions, StepInput> orchestrationService,
             IPromptDescriptorFactory promptDescriptorFactory,
             IFunctionDescriptorFactory functionDescriptorFactory,
-            ISemanticStore semanticStore)
-            : base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, gitHubLLMQueryClient)
+            ISemanticStore semanticStore,
+            IAzureLLMQueryClient llmQueryClient,
+            ILogger<State<ApiTestStateTransitions, StepInput>> logger,
+            StreamReporter streamReporter,
+            IStateFactory stateFactory)
+            : base(orchestrationService, promptDescriptorFactory, functionDescriptorFactory, semanticStore, llmQueryClient, logger, streamReporter, stateFactory)
         {
         }
 
@@ -35,20 +45,20 @@ namespace ApiTestingAgent.StateMachine.Steps
             ApiTestStateTransitions transition,
             StepInput stepInput)
         {
-            if (_isFirstRun)
+            using var activityScope = ActivityScope.Create(nameof(CommandInvocationState));
+            return await activityScope.Monitor(async () =>
             {
-                return await Introduction(stepInput.CoPilotChatRequestMessage, transition);
-            }
-            if (transition == ApiTestStateTransitions.CommandInvocationAnalysis)
-            {
-                return await CommandAnalysis(context, session, stepInput);
-            }
-            if (transition == ApiTestStateTransitions.CommandInvocation)
-            {
-                return await CommandInvocation(context, session, stepInput);
-            }
-            context.OnNonSupportedTransition(transition);
-            return default;
+                if (transition == ApiTestStateTransitions.CommandInvocationAnalysis)
+                {
+                    return await CommandAnalysis(context, session, stepInput);
+                }
+                if (transition == ApiTestStateTransitions.CommandInvocation)
+                {
+                    return await CommandInvocation(context, session, stepInput);
+                }
+                context.OnNonSupportedTransition(transition);
+                return default;
+            });
         }
 
         private async Task<(StepResult, ApiTestStateTransitions)> CommandAnalysis(
@@ -56,56 +66,70 @@ namespace ApiTestingAgent.StateMachine.Steps
             Session<ApiTestStateTransitions, StepInput> session,
             StepInput stepInput)
         {
-            var (isConsentGiven, action, chatCompletion) = await CheckCustomerConsent(session, stepInput);
-            if (action == ConsentAction.ConsentApproval && isConsentGiven)
+            using var activityScope = ActivityScope.Create(nameof(CommandInvocationState));
+            return await activityScope.Monitor(async () =>
             {
-                return TransitionToNextState(
-                    context,
-                    session,
-                    chatCompletion,
-                    new EndState<ApiTestStateTransitions, StepInput>(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore),
-                    ApiTestStateTransitions.Any);
-            }
+                var (isConsentGiven, action, chatCompletion) = await _orchestrationService.CheckCustomerConsent(session, stepInput);
+                if (action == ConsentAction.ConsentApproval && isConsentGiven)
+                {
+                    return TransitionToNextState(
+                        context,
+                        session,
+                        chatCompletion,
+                        null,
+                        null,
+                        _stateFactory.Create<EndState<ApiTestStateTransitions, StepInput>, ApiTestStateTransitions, StepInput>(),
+                        ApiTestStateTransitions.Any);
+                }
 
-            var (stepResult, apiTestStateTransitions) = await DetectAndTransitionNextState(context, session, stepInput);
-            if(apiTestStateTransitions != ApiTestStateTransitions.CommandInvocationAnalysis)
-            {
-                return (stepResult, apiTestStateTransitions);
-            }
+                var (stepResult, apiTestStateTransitions) = await DetectAndTransitionNextState(context, session, stepInput);
+                if (apiTestStateTransitions != ApiTestStateTransitions.CommandInvocationAnalysis)
+                {
+                    return (stepResult, apiTestStateTransitions);
+                }
 
-            var concreteFunctionDescriptor = _functionDescriptorFactory.GetFunctionDescriptor(nameof(RestToolFunctionDescriptor));
 
-            var chatCompletionResponse = await QueryLLM<CommandInvocationOutput>(
-                stepInput.CoPilotChatRequestMessage,
-                nameof(CommandInvocationPromptDescriptor),
-                PromptsConstants.CommandInvocation.Keys.CommandInvocationPromptKey,
-                PromptsConstants.CommandInvocation.Keys.CommandInvocationReturnedOutputKey,
-                new List<ChatTool> { concreteFunctionDescriptor.ToolDefinition });
+                var chatCompletionResponse = await _orchestrationService.QueryLLM<CommandInvocationAnalysisOutput>(
+                    stepInput.CoPilotChatRequestMessage,
+                    nameof(CommandInvocationPromptDescriptor),
+                    PromptsConstants.CommandInvocation.Keys.CommandInvocationAnalysisPromptKey,
+                    PromptsConstants.CommandInvocation.Keys.CommandInvocationAnalysisReturnedOutputKey,
+                    null);
 
-            if (chatCompletionResponse.IsToolCall)
-            {
-                // If tool call is detected, transition to CommandInvocation
-                return new(
-                    new StepResult
-                    {
-                        StepSuccess = true,
-                        FunctionResponses = chatCompletionResponse.FunctionResponses,
-                        PreviousChatCompletion = chatCompletionResponse.ChatCompletion
-                    },
-                    ApiTestStateTransitions.CommandInvocation
-                );
-            }
+                session.ResetStepResult(new(GetName(), Session<ApiTestStateTransitions, StepInput>.IncrementalResultKeyPostfix));
 
-            var structuredOutput = chatCompletionResponse.StructuredOutput;
+                var structuredOutput = chatCompletionResponse.StructuredOutput;
+                activityScope.Activity.SetTag("OutcomeMatched", structuredOutput.OutcomeMatched);
+                activityScope.Activity.SetTag("CorrectedUserMessage", structuredOutput.CorrectedUserMessage);
 
-            return DetectAndConfirm(
-                    session,
-                    stepInput,
-                    chatCompletionResponse,
-                    output => output.IsExpectedDetected,
-                    output => output.InstructionsToUserOnDetected(),
-                    ApiTestStateTransitions.CommandInvocationAnalysis,
-                    true);
+                if (!structuredOutput.OutcomeMatched)
+                {
+                    await _streamReporter.ReportAsync(
+                        $"✅ Transitioning to {ApiTestStateTransitions.CommandSelect}",
+                        chatCompletionResponse.ChatCompletion
+                    );
+
+                    return TransitionToNextState(
+                        context,
+                        session,
+                        chatCompletionResponse.ChatCompletion,
+                        structuredOutput.InstructionsToUserOnDetected(),
+                        structuredOutput.CorrectedUserMessage,
+                        _stateFactory.Create<CommandSelectState, ApiTestStateTransitions, StepInput>(),
+                        ApiTestStateTransitions.CommandSelect);
+                }
+                
+                return await _orchestrationService.DetectAndConfirm(
+                        session,
+                        stepInput,
+                        GetStepResultKey(),
+                        chatCompletionResponse,
+                        output => true,
+                        output => output.InstructionsToUserOnDetected(),
+                        ApiTestStateTransitions.CommandInvocationAnalysis,
+                        true,
+                        false);
+            });
         }
 
         private async Task<(StepResult, ApiTestStateTransitions)> CommandInvocation(
@@ -113,64 +137,84 @@ namespace ApiTestingAgent.StateMachine.Steps
             Session<ApiTestStateTransitions, StepInput> session,
             StepInput stepInput)
         {
-            if (stepInput.PreviousStepResult == null)
+            using var activityScope = ActivityScope.Create(nameof(CommandInvocationState));
+            return await activityScope.Monitor<(StepResult, ApiTestStateTransitions)>(async () =>
             {
-                return (
-                new StepResult
+                var concreteFunctionDescriptor = (ConcreteFunctionDescriptor<Task<(HttpStatusCode HttpStatusCode, string Content)>, string, string, Dictionary<string, string>, string>)_functionDescriptorFactory.GetFunctionDescriptor(nameof(RestToolFunctionDescriptor));
+
+                var chatCompletionResponse = await _orchestrationService.QueryLLM<StringResponse>(
+                    stepInput.CoPilotChatRequestMessage,
+                    nameof(CommandInvocationPromptDescriptor),
+                    PromptsConstants.CommandInvocation.Keys.CommandInvocationPromptKey,
+                    BuiltInPromptsConstants.StructuredResponses.Keys.StringResponseSchema,
+                    new List<ChatTool> { concreteFunctionDescriptor.ToolDefinition });
+
+                if (chatCompletionResponse.FunctionResponses == null || !chatCompletionResponse.FunctionResponses.Any())
                 {
-                    StepSuccess = false,
-                },
-                ApiTestStateTransitions.CommandInvocationAnalysis
+                    return (
+                        new StepResult
+                        {
+                            StepSuccess = false,
+                            CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>
+                            {
+                                new CoPilotChatResponseMessage("❌ No function response returned from LLM. Cannot proceed with command invocation.", chatCompletionResponse.ChatCompletion, false)
+                            }
+                        },
+                        ApiTestStateTransitions.CommandInvocationAnalysis
+                    );
+                }
+
+                var arguments = concreteFunctionDescriptor.GetParameters<RestToolFunctionDescriptor.RestToolParametersType>(JsonSerializer.Serialize(chatCompletionResponse.FunctionResponses.First().FunctionArguments));
+
+                await _streamReporter.ReportAsync(
+                    "🔄 Calling the service. Please wait while the function runs...",
+                    chatCompletionResponse.ChatCompletion
                 );
-            }
 
-            var concreteFunctionDescriptor = (ConcreteFunctionDescriptor<Task<(HttpStatusCode HttpStatusCode, string Content)>, string, string, Dictionary<string, string>, string>)_functionDescriptorFactory.GetFunctionDescriptor(nameof(RestToolFunctionDescriptor));
-            var arguments = concreteFunctionDescriptor.GetParameters<RestToolFunctionDescriptor.RestToolParametersType>(JsonSerializer.Serialize(stepInput.PreviousStepResult.FunctionResponses.First().FunctionArguments));
-
-            HttpStatusCode httpStatus = default;
-            string content = null;
-            try
-            {
-                var response = await concreteFunctionDescriptor.Function(arguments.Method, arguments.Url, arguments.Headers, arguments.Body);
-                httpStatus = response.HttpStatusCode;
-                content = response.Content;
-            }
-            catch (HttpResponseException exception)
-            {
-                httpStatus = exception.StatusCode;
-                content = exception.Message;
-            }
-            catch (Exception ex)
-            {
-                content = $"An error occurred while invoking the command: {ex.Message}";
-            }
-
-            var toolArgumentsDepiction = GetToolArgumentsDepiction(arguments);
-            var inputText = stepInput.CoPilotChatRequestMessage.GetUserFirstAsPlainText();
-            var sb = new StringBuilder();
-            sb.AppendLine($"Function called: {concreteFunctionDescriptor.ToolDefinition.FunctionName}");
-            sb.AppendLine($"Function arguments: {toolArgumentsDepiction}");
-            sb.AppendLine($"Function Result: HTTP Status: {httpStatus}\nContent: {content}");
-            _semanticStore.Add(inputText, sb.ToString());
-
-
-            var requestMessage = stepInput.CoPilotChatRequestMessage.CreateSingleMessageRequest(sb.ToString());
-            var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(CommandInvocationPromptDescriptor));
-            requestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.CommandInvocation.Keys.CommandInvocationHttpResultExplanationPromptKey));
-
-            var chatCompletionResponse = await _gitHubLLMQueryClient.Query<string>(requestMessage, null, null);
-
-            session.SetCurrentStep(this, ApiTestStateTransitions.CommandInvocationAnalysis);
-            return new(
-                new StepResult
+                HttpStatusCode httpStatus = default;
+                string content = null;
+                try
                 {
-                    CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>
+                    var response = await concreteFunctionDescriptor.Function(arguments.Method, arguments.Url, arguments.Headers, arguments.Body);
+                    httpStatus = response.HttpStatusCode;
+                    content = response.Content;
+                }
+                catch (HttpResponseException exception)
+                {
+                    httpStatus = exception.StatusCode;
+                    content = exception.Message;
+                }
+                catch (Exception ex)
+                {
+                    content = $"An error occurred while invoking the command: {ex.Message}";
+                }
+
+                var toolArgumentsDepiction = GetToolArgumentsDepiction(arguments);
+                var inputText = stepInput.CoPilotChatRequestMessage.GetUserFirstAsPlainText();
+
+                AddCommandResultToSession(httpStatus, content, (ApiTestSession)session);
+
+                activityScope.Activity.SetTag("httpStatusCode", httpStatus.ToString());
+                activityScope.Activity.SetTag("HttpResponse", content);
+
+                session.SetCurrentStep(this, ApiTestStateTransitions.CommandInvocationAnalysis);
+                return new (
+                    new StepResult
                     {
-                        new CoPilotChatResponseMessage(chatCompletionResponse.StructuredOutput, chatCompletionResponse.ChatCompletion, true)
+                        StepSuccess = true,
                     },
-                    StepSuccess = true,
-                },
-                ApiTestStateTransitions.CommandInvocationAnalysis);
+                    ApiTestStateTransitions.CommandInvocationAnalysis);
+            });
+        }
+
+        private void AddCommandResultToSession(HttpStatusCode httpStatus, string content, ApiTestSession session)
+        {
+            var sb = new StringBuilder();
+            sb.Append($"Command Invocation Result:\n");
+            sb.AppendLine($"HTTP Status: {httpStatus}\n");
+            sb.AppendLine($"Content: {content}");
+            sb.AppendLine();
+            session.AddStepResult(new(GetName(), Session<ApiTestStateTransitions, StepInput>.IncrementalResultKeyPostfix), sb.ToString());
         }
 
         public async Task<(StepResult, ApiTestStateTransitions)> DetectAndTransitionNextState(
@@ -178,45 +222,70 @@ namespace ApiTestingAgent.StateMachine.Steps
             Session<ApiTestStateTransitions, StepInput> session,
             StepInput stepInput)
         {
-            var chatCompletionResponse = await QueryLLM<CommandInvocationDetectNextStateOutput>(
-               stepInput.CoPilotChatRequestMessage,
-               nameof(CommandInvocationPromptDescriptor),
-               PromptsConstants.CommandInvocation.Keys.CommandInvocationDetectNextStatePromptKey,
-               PromptsConstants.CommandInvocation.Keys.CommandInvocationDetectNextStateOutputKey,
-               null);
-
-            var output = chatCompletionResponse.StructuredOutput;
-            if (output.NextState == "ExpectedOutcome")
+            using var activityScope = ActivityScope.Create(nameof(CommandInvocationState));
+            return await activityScope.Monitor(async () =>
             {
-                return TransitionToNextState(
-                    context,
-                    session,
-                    chatCompletionResponse.ChatCompletion,
-                    new ExpectedOutcomeState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore),
-                    ApiTestStateTransitions.ExpectedOutcome);
-            }
-            else if (output.NextState == "CommandSelect")
-            {
-                return TransitionToNextState(
-                    context,
-                    session,
-                    chatCompletionResponse.ChatCompletion,
-                    new CommandDiscoveryState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore),
-                    ApiTestStateTransitions.CommandDiscovery);
-            }
-            // If 'None', stay in current analysis state
+                var chatCompletionResponse = await _orchestrationService.QueryLLM<CommandInvocationDetectNextStateOutput>(
+                stepInput.CoPilotChatRequestMessage,
+                nameof(CommandInvocationPromptDescriptor),
+                PromptsConstants.CommandInvocation.Keys.CommandInvocationDetectNextStatePromptKey,
+                PromptsConstants.CommandInvocation.Keys.CommandInvocationDetectNextStateOutputKey,
+                null);
 
-            return (
-                new StepResult
+                var output = chatCompletionResponse.StructuredOutput;
+                activityScope.Activity.SetTag("NextStateSelected", output.NextState);
+
+                if(!string.IsNullOrEmpty(output.NextState))
                 {
-                    CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>
+                    await _streamReporter.ReportAsync(
+                        $"✅ Transitioning to {output.NextState}",
+                        chatCompletionResponse.ChatCompletion
+                    );
+                }
+
+                if (output.NextState == ApiTestStateTransitions.ExpectedOutcome.ToString())
+                {
+                    return TransitionToNextState(
+                        context,
+                        session,
+                        chatCompletionResponse.ChatCompletion,
+                        null,
+                        null,
+                        _stateFactory.Create<ExpectedOutcomeState, ApiTestStateTransitions, StepInput>(),
+                        ApiTestStateTransitions.ExpectedOutcome);
+                }
+                else if (output.NextState == ApiTestStateTransitions.CommandSelect.ToString())
+                {
+                    return TransitionToNextState(
+                        context,
+                        session,
+                        chatCompletionResponse.ChatCompletion,
+                        null,
+                        null,
+                        _stateFactory.Create<CommandSelectState, ApiTestStateTransitions, StepInput>(),
+                        ApiTestStateTransitions.CommandSelect);
+                }
+                else if (output.NextState == ApiTestStateTransitions.CommandInvocation.ToString())
+                {
+                    return TransitionToNextState(
+                        context,
+                        session,
+                        chatCompletionResponse.ChatCompletion,
+                        null,
+                        null,
+                        this,
+                        ApiTestStateTransitions.CommandInvocation);
+                }
+                // If 'None', stay in current analysis state
+
+                return (
+                    new StepResult
                     {
-                        new CoPilotChatResponseMessage(output.CurrentStatus, chatCompletionResponse.ChatCompletion, true)
+                        StepSuccess = true,
                     },
-                    StepSuccess = true,
-                },
-                ApiTestStateTransitions.CommandInvocationAnalysis
-            );
+                    ApiTestStateTransitions.CommandInvocationAnalysis
+                );
+            });
         }
 
         // Helper to create a string depicting the arguments for LLM context

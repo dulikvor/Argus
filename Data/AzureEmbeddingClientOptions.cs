@@ -1,4 +1,4 @@
-using Argus.Common.Clients;
+using Argus.Common.Http;
 
 namespace Argus.Data
 {

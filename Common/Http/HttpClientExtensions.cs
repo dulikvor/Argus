@@ -4,7 +4,7 @@ using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 
-namespace Argus.Common.Clients
+namespace Argus.Common.Http
 {
     public static class HttpClientExtensions
     {

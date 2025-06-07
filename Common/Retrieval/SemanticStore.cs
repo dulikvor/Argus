@@ -1,5 +1,6 @@
 using Argus.Clients.AzureEmbeddingClient;
 using Argus.Common.Data;
+using Argus.Common.Telemetry;
 using Argus.Contracts.OpenAI;
 using Argus.Contracts.Semantic;
 using Argus.Data;
@@ -45,31 +46,61 @@ namespace Argus.Common.Retrieval
 
         public async Task<List<SemanticEntity>> Search(string inputText, int topK = 5)
         {
-            var userName = CallContext.GetData(ServiceConstants.Authentication.UserNameKey) as string;
-
-            if (string.IsNullOrEmpty(inputText))
-                throw new ArgumentException("Input text cannot be null or empty.", nameof(inputText));
-
-            if (string.IsNullOrEmpty(userName))
-                throw new InvalidOperationException("User name is not available in the call context.");
-
-            var embeddingResult = await _azureEmbeddingClient.GenerateEmbeddingAsync(new EmbeddingRequest()
+            using var activityScope = ActivityScope.Create(nameof(SemanticStore));
+            return await activityScope.Monitor(async () =>
             {
-                Input = inputText
-            });
+                var userName = CallContext.GetData(ServiceConstants.Authentication.UserNameKey) as string;
 
-            var semanticsEntities = _store.ContainsKey(userName) ? _store[userName] : new List<SemanticEntity>();
+                if (string.IsNullOrEmpty(inputText))
+                    throw new ArgumentException("Input text cannot be null or empty.", nameof(inputText));
 
-            return semanticsEntities
-                .Select(entity => new
+                if (string.IsNullOrEmpty(userName))
+                    throw new InvalidOperationException("User name is not available in the call context.");
+
+                var embeddingResult = await _azureEmbeddingClient.GenerateEmbeddingAsync(new EmbeddingRequest()
                 {
-                    Document = entity,
-                    Similarity = VectorUtils.CosineSimilarity(entity.Embedding, embeddingResult.Data.First().EmbeddingVector.ToArray())
-                })
-                .OrderByDescending(x => x.Similarity)
-                .Take(topK)
-                .Select(x => x.Document)
-                .ToList();
+                    Input = inputText
+                });
+
+                var semanticsEntities = _store.ContainsKey(userName) ? _store[userName] : new List<SemanticEntity>();
+
+                var results = new List<(SemanticEntity Entity, double Similarity)>();
+                using var activityScope1 = ActivityScope.Create(nameof(SemanticStore), "Scope1");
+                {
+                    var semaphore = new SemaphoreSlim(100);
+                    var tasks = semanticsEntities.Select(entity =>
+                    {
+                        return Task.Run(async () =>
+                        {
+                            await semaphore.WaitAsync().ConfigureAwait(false);
+                            try
+                            {
+                                var similarity = VectorUtils.CosineSimilarity(entity.Embedding, embeddingResult.Data.First().EmbeddingVector.ToArray());
+                                lock (results)
+                                {
+                                    results.Add((entity, similarity));
+                                }
+                            }
+                            finally
+                            {
+                                semaphore.Release();
+                            }
+                        });
+                    }).ToList();
+
+                    await Task.WhenAll(tasks);
+                }
+
+
+            using var activityScope2 = ActivityScope.Create(nameof(SemanticStore), "Scope2");
+            {
+                return results
+                    .OrderByDescending(x => x.Similarity)
+                    .Take(topK)
+                    .Select(x => x.Entity)
+                    .ToList();
+            }
+            });
         }
 
         private async Task<SemanticEntity> CreateEntity(string inputText, string outputText, Dictionary<string, string> metadata = default)

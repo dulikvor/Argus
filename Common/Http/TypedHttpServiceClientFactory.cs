@@ -1,4 +1,4 @@
-﻿namespace Argus.Common.Clients
+﻿namespace Argus.Common.Http
 {
     public class TypedHttpServiceClientFactory : ITypedHttpServiceClientFactory
     {

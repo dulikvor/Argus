@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace Argus.Common.Clients
+namespace Argus.Common.Http
 {
     public static class HttpClientBuilderExtension
     {

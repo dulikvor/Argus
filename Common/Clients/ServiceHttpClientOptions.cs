@@ -6,5 +6,6 @@ namespace Argus.Common.Clients
     {
         public Uri Endpoint { get; set; }
         public string Audience { get; set; }
+        public string ApiKey { get; set; }
     }
 }

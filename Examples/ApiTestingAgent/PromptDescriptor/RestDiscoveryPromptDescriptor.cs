@@ -16,6 +16,9 @@ public class RestDiscoveryPromptDescriptor : BasePromptDescriptor
     {
         // Initialize prompts
         Prompts[PromptsConstants.RestDiscovery.Keys.RestResourcesDiscoveryPromptKey] =
+            "### CURRENT STATE & GOAL\n\n" +
+            "State: RestDiscoveryState\n\n" +
+            "Notes:\n" +
             "You are given an OpenAPI JSON specification for Azure REST API resources.\n" +
             "Analyze all operations under the `paths` section and extract for each:\n" +
             "1. **REST route** � full API URL with placeholders (e.g., `{subscriptionId}`, `{resourceGroupName}`).\n" +

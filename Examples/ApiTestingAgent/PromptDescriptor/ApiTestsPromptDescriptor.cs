@@ -14,19 +14,14 @@ public class ApiTestsPromptDescriptor : BasePromptDescriptor
     {
         // Initialize prompts
         Prompts.Add(PromptsConstants.ApiTests.Keys.StateMachineKey,
-            "StateMachineOverview" + Environment.NewLine +
-            "This state machine guides the user through a series of operations. " +
-            "Currently, it includes the following steps:\n" +
-            "1. **ServiceInformationState**: Handles the discovery of service information and domain details. " +
-            "Transitions include setting up service information or moving to REST API discovery.\n" +
-            "2. **RestDiscoveryState**: Handles the discovery of REST API endpoints and their details. " +
-            "Transitions include rediscovering REST APIs, fetching raw content, or moving to command discovery.\n" +
-            "3. **CommandDiscoveryState**: Handles the discovery of commands or operations related to the API. " +
-            "Transitions include rediscovering commands or moving to define the expected outcome.\n" +
-            "4. **ExpectedOutcomeState**: Defines the expected outcome of a command, including HTTP status, error messages, and response content. " +
-            "Transitions include refining the expected outcome or moving to command invocation.\n" +
-            "5. **CommandInvocationState**: Handles the invocation of a confirmed command. " +
-            "Transitions include retrying command discovery or moving to the final state.\n" +
-            "6. **EndState**: Represents the final state of the state machine, marking the successful completion of the workflow.");
+            "### SYSTEM OVERVIEW\n" +
+            "This state machine guides the user through a multi-step, LLM-driven API testing workflow. Each state is instrumented with telemetry (tracing, metrics, logging) and uses structured output schemas for intent detection, confirmation, and transitions. The workflow includes the following states and transitions:\n" +
+            "1. **ServiceInformationState**: Discovers service and domain information. Transitions: set up service info, retry, or proceed to REST API discovery. Uses LLM prompts for extraction and confirmation.\n" +
+            "2. **RestDiscoveryState**: Discovers REST API endpoints and details. Transitions: rediscover endpoints, fetch raw content, retry, or proceed to command discovery. Semantic context and LLM intent detection are used.\n" +
+            "3. **CommandDiscoveryState**: Discovers available API commands/operations. Transitions: rediscover commands, retry, or proceed to expected outcome definition. LLM output is confirmed with user consent if needed.\n" +
+            "4. **ExpectedOutcomeState**: Defines the expected outcome for a command (status, errors, response). Transitions: refine outcome, retry, or proceed to command invocation. Uses structured schemas for output and confirmation.\n" +
+            "5. **CommandInvocationState**: Invokes the confirmed command and captures results. Transitions: retry command discovery, handle errors, or proceed to the final state. LLM output and telemetry are used for result analysis.\n" +
+            "6. **EndState**: Marks successful completion or early termination of the workflow.\n" +
+            "\nAt each step, the state machine leverages semantic memory, LLM-driven intent detection, and user consent/confirmation to ensure safe and accurate transitions. Error handling, retries, and fallback transitions are supported throughout the workflow.");
     }
 }

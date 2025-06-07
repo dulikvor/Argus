@@ -2,8 +2,8 @@ using ApiTestingAgent.PromptDescriptor;
 using ApiTestingAgent.Services;
 using Argus.Clients.AzureEmbeddingClient;
 using Argus.Clients.GitHubAuthentication;
-using Argus.Clients.GitHubLLMQuery;
 using Argus.Clients.GitHubRawContentCdnClient;
+using Argus.Clients.LLMQuery;
 using Argus.Clients.RestClient;
 using Argus.Common.Builtin.Functions;
 using Argus.Common.Builtin.PromptDescriptor;
@@ -12,8 +12,14 @@ using Argus.Common.Functions;
 using Argus.Common.GitHubAuthentication;
 using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
+using Argus.Common.Telemetry;
 using Argus.Common.Web;
 using Argus.Data;
+using Azure.Monitor.OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 namespace ApiTestingAgent;
 
@@ -58,9 +64,40 @@ public class Startup
         services.AddServiceHttpClient<IGitHubRawContentCdnClient, GitHubRawContentCdnClient, GitHubRawContentCdnClientOptions>();
         services.AddServiceHttpClient<IRestClient, RestClient>(ignoreServerCertificateValidation: true);
 
-        services.AddServiceHttpClient<IAzureEmbeddingClient, AzureEmbeddingClient, AzureEmbeddingClientOptions>(AzureAuthenticationTokenProvider.TokenCreator);
+        services.AddServiceHttpClient<IAzureEmbeddingClient, AzureEmbeddingClient, AzureEmbeddingClientOptions>(ApiKeyTokenProvider.TokenCreator);
 
         services.AddManagedServiceClient<IGitHubLLMQueryClient, GitHubLLMQueryClient>();
+        services.AddManagedServiceClient<IAzureLLMQueryClient, AzureLLMQueryClient>();
+
+        // OpenTelemetry configuration
+        services.AddOpenTelemetry()
+            .WithTracing(builder =>
+            {
+                builder
+                    .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("ApiTestingAgent"))
+                    .AddSource(ActivityScope.Source)
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddAzureMonitorTraceExporter(options =>
+                    {
+                        options.ConnectionString = _configuration["AzureMonitor:ConnectionString"];
+                    });
+            });
+
+        services.AddLogging(loggingBuilder =>
+        {
+            loggingBuilder.AddOpenTelemetry(options =>
+            {
+                options.IncludeFormattedMessage = true;
+                options.IncludeScopes = true;
+                options.ParseStateValues = true;
+                options.AddAzureMonitorLogExporter(o =>
+                {
+                    o.ConnectionString = _configuration["AzureMonitor:ConnectionString"];
+                });
+            })
+            .AddTraceSource(ActivityScope.Source);
+        });
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -98,6 +135,10 @@ public class Startup
             .ValidateOnStart();
         services.AddOptions<GitHubLLMQueryClientOptions>()
             .Bind(_configuration.GetSection(nameof(ServiceConfiguration.GitHubLLMQueryClient)))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddOptions<AzureLLMQueryClientOptions>()
+            .Bind(_configuration.GetSection(nameof(ServiceConfiguration.AzureLLMQueryClient)))
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddOptions<AzureEmbeddingClientOptions>()

@@ -16,11 +16,33 @@ public class ServiceInformationPromptDescriptor : BasePromptDescriptor
     {
         // Initialize prompts
         Prompts[PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey] =
-        "Detect if a service domain (like \"example.com\") is mentioned by the user. " +
-        "If it is detected, return a full sentence in `instructionsToUserOnDomainDetected` confirming what was found and asking the user for approval or correction. " +
-        "Set `stepIsConcluded = true` if the user confirms the domain � any approval is legit. " +
-        "Once confirmed, `instructionsToUserOnDomainDetected` should contain a summary of the approved domain, and `detectedDomain` should include the detected domain value. " +
-        "If no domain is found, ask the user to provide one, with a helpful instruction and an example. The instruction should be made over `instructionsToUserOnFailure`.";
+            @"### SERVICE DOMAIN SELECTION
+            #### 🎯 Goal:
+            Identify the service domain to be used for command construction in a later step.
+
+            ---
+
+            #### 📌 Current Domain:
+            {0}
+
+            ---
+
+            #### 💬 What You Can Do:
+            - ✅ If the domain shown above is correct, confirm by replying with “yes”, “confirm”, “use this domain”, or any similar confirmation.
+            - 🔁 If you'd like to use a different domain, please enter it now.
+            - 🆕 If no domain is currently shown, you must enter one to continue.
+
+            ---
+
+            #### 📤 Response Format:
+            Respond in the following structured format:
+
+            ```json
+            {
+              ""domain"": ""<string>"",        // The domain to be used for command construction.
+              ""userResponse"": ""<string>""   // The natural-language confirmation or message to the user.
+            }
+            ";
 
         // Initialize structured responses
         var serviceInformationDomainReturnedOutputSchema = new
@@ -28,19 +50,20 @@ public class ServiceInformationPromptDescriptor : BasePromptDescriptor
             type = "object",
             properties = new
             {
-                instructionsToUserOnDomainDetected = new { type = "string", description = "A full, user-friendly message shown when a service domain has been detected. It should clearly state the detected domain and instruct the user to either confirm it or provide a correction. Do not ask for approval in a vague way � make it clear that explicit confirmation is required before proceeding." },
-                stepIsConcluded = new { type = "boolean", description = "True if the user has confirmed the domain � for example, by saying \"Yes, acme.org is correct\", \"That�s right\", \"Confirmed\", or similar phrasing." },
-                instructionsToUserOnFailure = new
+                detectedDomain = new
                 {
                     type = "string",
-                    description = "Message shown when no service domain is detected in the user input. It should clearly inform the user that a domain is required and provide an example (e.g., example.com) to guide them in supplying one."
+                    description = "The domain provided or confirmed by the user in the current interaction, such as 'api.example.com'. This must be null if no domain was detected in this input."
                 },
-                serviceDomainDetectedInCurrentIteration = new { type = "boolean", description = "True if a valid service domain was detected in the current user input only (not from history). False if no new domain was found. This helps track whether detection happened in this specific interaction." },
-                detectedDomain = new { type = "string", description = "The detected domain value, such as 'example.com', which was identified in the user input." }
+                userResponse = new
+                {
+                    type = "string",
+                    description = "The message shown to the user, clearly acknowledging the detected domain or guiding the user to provide one."
+                }
             },
-            required = new[] { "instructionsToUserOnDomainDetected", "stepIsConcluded", "instructionsToUserOnFailure", "serviceDomainDetectedInCurrentIteration", "detectedDomain" }
+            required = new[] { "detectedDomain", "userResponse" }
         };
-        StructuredResponses.Add<ServiceInformationDomainOutput>(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey,
+        StructuredResponses.Add<DomainSelectionOutput>(PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey,
             JsonSerializer.Serialize(serviceInformationDomainReturnedOutputSchema));
     }
 }

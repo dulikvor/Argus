@@ -16,6 +16,9 @@ public class CommandDiscoveryPromptDescriptor : BasePromptDescriptor
     {
         // Initialize prompts
         Prompts[PromptsConstants.CommandDiscovery.Keys.RestSelectPromptKey] =
+            "### CURRENT STATE & GOAL\n\n" +
+            "State: CommandDiscoveryState\n\n" +
+            "Notes:\n" +
             "Analyze the provided REST API operations and select the most appropriate command to execute. " +
             "Ensure the command is valid and adheres to the constraints of HTTP methods (GET, POST, PUT, DELETE). " +
             "The domain must be derived from the discovery domain state result and used in the returned URI. " +
@@ -26,7 +29,8 @@ public class CommandDiscoveryPromptDescriptor : BasePromptDescriptor
             "If any required details are missing, such as the full resource URI or content, instruct the user to provide them. " +
             "For example, if a resource URI is incomplete, ask the user to specify the missing parts (e.g., 'Provide the full path to the resource, including the domain, endpoint, and query parameters if applicable'). " +
             "If the content does not match the expected format, provide examples of the correct format and request the user to update it accordingly. " +
-            "If no valid command is found, provide detailed feedback to the user.";
+            "If no valid command is found, provide detailed feedback to the user. " +
+            "Always explain what is the current status (what is currently known, e.g., discovered APIs, selected command, missing details) and also explicitly state what is the current state (e.g., waiting for user input, selecting command, etc.).";
 
         // Initialize structured responses
         var commandDiscoveryReturnedOutputSchema = new

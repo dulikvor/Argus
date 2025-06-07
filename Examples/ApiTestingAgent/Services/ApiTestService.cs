@@ -1,88 +1,98 @@
 ﻿using ApiTestingAgent.PromptDescriptor;
 using ApiTestingAgent.StateMachine;
 using ApiTestingAgent.StateMachine.Steps;
-using Argus.Clients.GitHubLLMQuery;
+using Argus.Clients.LLMQuery;
 using Argus.Common.Data;
 using Argus.Common.Functions;
 using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
 using Argus.Common.StateMachine;
+using Argus.Common.Telemetry;
 using Argus.Common.Web;
 using Argus.Contracts.OpenAI;
 using Argus.Data;
+using System.Diagnostics;
 using ApiTestsStateContext = Argus.Common.StateMachine.StateContext<ApiTestingAgent.StateMachine.ApiTestStateTransitions, Argus.Common.StateMachine.StepInput>;
 
 namespace ApiTestingAgent.Services
 {
     public class ApiTestService : IApiTestService
     {
-        private readonly IGitHubLLMQueryClient _gitHubLLMQueryClient;
+        private readonly IAzureLLMQueryClient _llmQueryClient;
         private readonly IPromptDescriptorFactory _promptDescriptorFactory;
         private readonly IFunctionDescriptorFactory _functionDescriptorFactory;
         private readonly IResponseStreamWriter<ServerSentEventsStreamWriter> _responseStreamWriter;
         private readonly ISemanticStore _semanticStore;
+        private readonly ILogger<State<ApiTestStateTransitions, StepInput>> _logger;
 
         public ApiTestService(
             IServiceProvider serviceProvider,
-            IGitHubLLMQueryClient gitHubLLMQueryClient,
+            IAzureLLMQueryClient llmQueryClient,
             IPromptDescriptorFactory promptDescriptorFactory, 
             IFunctionDescriptorFactory functionDescriptorFactory, 
             IResponseStreamWriter<ServerSentEventsStreamWriter> responseStreamWriter,
-            ISemanticStore semanticStore)
+            ISemanticStore semanticStore,
+            ILogger<State<ApiTestStateTransitions, StepInput>> logger)
         {
-            _gitHubLLMQueryClient = gitHubLLMQueryClient;
+            _llmQueryClient = llmQueryClient;
             _promptDescriptorFactory = promptDescriptorFactory;
             _functionDescriptorFactory = functionDescriptorFactory;
             _responseStreamWriter = responseStreamWriter;
             _semanticStore = semanticStore;
+            _logger = logger;
         }
 
         public async Task InvokeNext(HttpContext httpContext, CoPilotChatRequestMessage coPilotChatRequestMessage)
         {
-            var session = SessionStore<ApiTestSession, ApiTestStateTransitions, StepInput, StepResult>.GetSessions((string)CallContext.GetData(ServiceConstants.Authentication.UserNameKey));
-
-            ApiTestStateTransitions transition = default;
-            ApiTestsStateContext stateContext = default;
-            if (session.CurrentStep != null)
-            { 
-                stateContext = new ApiTestsStateContext(session.CurrentStep);
-                transition = session.CurrentTransition;
-            }
-            else
+            using var activityScope = ActivityScope.Create(nameof(ApiTestService));
+            await activityScope.Monitor(async () =>
             {
-                stateContext = new ApiTestsStateContext(new ServiceInformationState(_gitHubLLMQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore));
-                transition = ApiTestStateTransitions.ServiceInformationDiscovery;
-            }
+                activityScope.Activity.SetTag("user", CallContext.GetData(ServiceConstants.Authentication.UserNameKey)?.ToString() ?? "unknown");
+                var session = SessionStore<ApiTestSession, ApiTestStateTransitions, StepInput, StepResult>.GetSessions((string)CallContext.GetData(ServiceConstants.Authentication.UserNameKey));
 
-            StepResult result = default;
-            do
-            {
-                var filteredCoPilotChatRequestMessage = coPilotChatRequestMessage.GetUserLast();
-
-                var prompt = _promptDescriptorFactory.GetPromptDescriptor(nameof(ApiTestsPromptDescriptor))
-                    .GetPrompt(PromptsConstants.ApiTests.Keys.StateMachineKey);
-                filteredCoPilotChatRequestMessage.AddSystemMessage(prompt);
-
-                session.SetCurrentStep(stateContext.GetCurrentState(), transition);
-                filteredCoPilotChatRequestMessage.AddSystemMessage(session.ToString());
-
-                (result, transition) = await stateContext.HandleState(session, transition, new StepInput
+                ApiTestStateTransitions transition = default;
+                ApiTestsStateContext stateContext = default;
+                if (session.CurrentStep != null)
                 {
-                    CoPilotChatRequestMessage = filteredCoPilotChatRequestMessage,
-                    PreviousStepResult = result
-                });
-
-                if(result.CoPilotChatResponseMessages != null)
+                    stateContext = new ApiTestsStateContext(session.CurrentStep);
+                    transition = session.CurrentTransition;
+                }
+                else
                 {
-                    await _responseStreamWriter.WriteToStreamAsync(httpContext, result.CoPilotChatResponseMessages);
+                    stateContext = new ApiTestsStateContext(new DomainSelectionState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger));
+                    transition = ApiTestStateTransitions.ServiceInformationDiscovery;
                 }
 
-                if (result.ConfirmationMessage != null)
+                StepResult result = default;
+                do
                 {
-                    await _responseStreamWriter.WriteToStreamAsync(httpContext, new List<object> { result.ConfirmationMessage }, EventType.CopilotConfirmation);
+                    var filteredCoPilotChatRequestMessage = coPilotChatRequestMessage.GetUserLast();
+
+                    var prompt = _promptDescriptorFactory.GetPromptDescriptor(nameof(ApiTestsPromptDescriptor))
+                        .GetPrompt(PromptsConstants.ApiTests.Keys.StateMachineKey);
+                    //filteredCoPilotChatRequestMessage.AddSystemMessage(prompt);
+
+                    session.SetCurrentStep(stateContext.GetCurrentState(), transition);
+                    filteredCoPilotChatRequestMessage.AddSystemMessage(session.ToString());
+
+                    (result, transition) = await stateContext.HandleState(session, transition, new StepInput
+                    {
+                        CoPilotChatRequestMessage = filteredCoPilotChatRequestMessage,
+                        PreviousStepResult = result
+                    });
+
+                    if (result.CoPilotChatResponseMessages != null)
+                    {
+                        await _responseStreamWriter.WriteToStreamAsync(httpContext, result.CoPilotChatResponseMessages);
+                    }
+
+                    if (result.ConfirmationMessage != null)
+                    {
+                        await _responseStreamWriter.WriteToStreamAsync(httpContext, new List<object> { result.ConfirmationMessage }, EventType.CopilotConfirmation);
+                    }
                 }
-            }
-            while (result.StepSuccess);
+                while (result.StepSuccess);
+            });
         }
     }
 }

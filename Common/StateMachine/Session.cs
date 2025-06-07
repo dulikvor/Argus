@@ -42,8 +42,8 @@ public class Session<TTransition, TStepInput>
 
     public override string ToString()
     {
-        var stepResults = string.Join(", ", StepResult.Select(kvp => $"[({kvp.Key.Item1.ToString()}, {kvp.Key.Item2.ToString()}): {kvp.Value.ToString()}]"));
-        return $"Current Step: {CurrentStep.GetName()}, Current Transition: {CurrentTransition.ToString()}, Step Results: {stepResults}";
+        var stepResults = string.Join('\n', StepResult.Select(kvp => kvp.Value.ToString()));
+        return $"*As Context for you*\n\nSelections made by the user in previous steps:\n{stepResults}";
     }
 
     public static StepResultKey CompileKey(string stepName, string key)

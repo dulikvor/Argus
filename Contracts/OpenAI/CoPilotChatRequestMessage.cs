@@ -99,5 +99,16 @@ namespace Argus.Contracts.OpenAI
             Messages = Messages ?? new List<CopilotChatMessage>();
             Messages.Add(userMessage);
         }
+
+        public List<string> GetMessagesContent()
+        {
+            var messagesContent = new List<string>();
+            foreach (var message in Messages ?? Enumerable.Empty<CopilotChatMessage>())
+            {
+                messagesContent.Add(message.Content);
+            }
+
+            return messagesContent;
+        }
     }
 }

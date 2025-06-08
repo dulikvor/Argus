@@ -73,7 +73,7 @@ namespace ApiTestingAgent.Services
                     //filteredCoPilotChatRequestMessage.AddSystemMessage(prompt);
 
                     session.SetCurrentStep(stateContext.GetCurrentState(), transition);
-                    filteredCoPilotChatRequestMessage.AddSystemMessage(session.ToString());
+                    filteredCoPilotChatRequestMessage.AddSystemMessage(session.ToString(), SystemMessagePriority.Medium);
 
                     (result, transition) = await stateContext.HandleState(session, transition, new StepInput
                     {

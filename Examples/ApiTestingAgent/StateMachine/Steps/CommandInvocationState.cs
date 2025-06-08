@@ -172,7 +172,7 @@ namespace ApiTestingAgent.StateMachine.Steps
 
                 var requestMessage = stepInput.CoPilotChatRequestMessage.CreateSingleMessageRequest(sb.ToString());
                 var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(CommandInvocationPromptDescriptor));
-                requestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.CommandInvocation.Keys.CommandInvocationHttpResultExplanationPromptKey));
+                requestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.CommandInvocation.Keys.CommandInvocationHttpResultExplanationPromptKey), SystemMessagePriority.High);
 
                 var chatCompletionResponse = await _llmQueryClient.Query<string>(requestMessage, null, null);
 

@@ -36,46 +36,35 @@ namespace ApiTestingAgent.StateMachine.Steps
         {
             using var activityScope = ActivityScope.Create(nameof(DomainSelectionState));
             return await activityScope.Monitor(async () =>
-            {
-                ApiTestStateTransitions nextTransition = transition;
-                //if (_isFirstRun)
-                //{
-                //    return await Introduction(stepInput.CoPilotChatRequestMessage, nextTransition);
-                //}
-                if (transition == ApiTestStateTransitions.ServiceInformationDiscovery)
+            {                
+                var (isConsentGiven, action, chatCompletion) = await CheckCustomerConsent(session, stepInput);
+                if (action == ConsentAction.ConsentApproval && isConsentGiven)
                 {
-                    var (isConsentGiven, action, chatCompletion) = await CheckCustomerConsent(session, stepInput);
-                    if (action == ConsentAction.ConsentApproval && isConsentGiven)
-                    {
-                        return TransitionToNextState(
-                            context,
-                            session,
-                            chatCompletion,
-                            new RestDiscoveryState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger),
-                            ApiTestStateTransitions.RestDiscovery);
-                    }
-
-                    var chatCompletionStructuredResponse = await QueryLLM<DomainSelectionOutput>(
-                        stepInput.CoPilotChatRequestMessage,
-                        nameof(ServiceInformationPromptDescriptor),
-                        PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey,
-                        PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey,
-                        null);
-
-                    activityScope.Activity.SetTag("UserResponse", chatCompletionStructuredResponse.StructuredOutput.UserResponse);
-
-                    return DetectAndConfirm(
+                    return TransitionToNextState(
+                        context,
                         session,
-                        stepInput,
-                        chatCompletionStructuredResponse,
-                        output => !string.IsNullOrEmpty(output.DetectedDomain),
-                        output => output.UserResponse,
-                        ApiTestStateTransitions.ServiceInformationDiscovery,
-                        true);
+                        chatCompletion,
+                        new RestDiscoveryState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger),
+                        ApiTestStateTransitions.RestDiscovery);
                 }
 
-                context.OnNonSupportedTransition(transition);
-                return default;
+                var chatCompletionStructuredResponse = await QueryLLM<DomainSelectionOutput>(
+                    stepInput.CoPilotChatRequestMessage,
+                    nameof(ServiceInformationPromptDescriptor),
+                    PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainPromptKey,
+                    PromptsConstants.ServiceInformation.Keys.ServiceInformationDomainReturnedOutputKey,
+                    null);
+
+                activityScope.Activity.SetTag("UserResponse", chatCompletionStructuredResponse.StructuredOutput.UserResponse);
+
+                return DetectAndConfirm(
+                    session,
+                    stepInput,
+                    chatCompletionStructuredResponse,
+                    output => !string.IsNullOrEmpty(output.DetectedDomain),
+                    output => output.UserResponse,
+                    ApiTestStateTransitions.ServiceInformationDiscovery,
+                    true);
             });
         }
     }

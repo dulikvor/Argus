@@ -19,6 +19,6 @@ public class DomainSelectionOutput : BaseOutput
 
     public override string OutputIncrementalResult()
     {
-        return $"Detected Domain: {DetectedDomain}";
+        return $"Detected Domain: {DetectedDomain}\n";
     }
 }

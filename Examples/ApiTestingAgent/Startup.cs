@@ -53,6 +53,7 @@ public class Startup
         services.AddSingleton<IPromptDescriptor, RestDiscoveryPromptDescriptor>();
         services.AddSingleton<IPromptDescriptor, CommandInvocationPromptDescriptor>();
         services.AddSingleton<IPromptDescriptor, ExpectedOutcomePromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, StringPromptDescriptor>();
         services.AddSingleton<IPromptDescriptorFactory, PromptDescriptorFactory>();
         services.AddSingleton<IApiTestService, ApiTestService>();
 

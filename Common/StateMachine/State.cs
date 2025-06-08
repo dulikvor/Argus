@@ -48,7 +48,7 @@ public abstract class State<TTransition, TStepInput>
             var sematicResult = await _semanticStore.Search(coPilotChatRequestMessage.GetUserFirstAsPlainText());
 
             var concretePromptDescriptor = (ContextPromptDescriptor)_promptDescriptorFactory.GetPromptDescriptor(nameof(ContextPromptDescriptor));
-            coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.ReconcilePrompt(sematicResult));
+            coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.ReconcilePrompt(sematicResult), SystemMessagePriority.Low);
         });
     }
 
@@ -59,7 +59,8 @@ public abstract class State<TTransition, TStepInput>
                 Func<TOutput, bool> isDetected,
                 Func<TOutput, string> getConfirmationMessage,
                 TTransition retryTransition,
-                bool withSoftConsent = false)
+                bool withSoftConsent = false,
+                bool withStepResult = true)
                 where TOutput : BaseOutput
     {
         using var activityScope = ActivityScope.Create("State");
@@ -70,7 +71,10 @@ public abstract class State<TTransition, TStepInput>
 
             if (isDetected(structuredOutput))
             {
-                session.AddStepResult(new(GetName(), Session<TTransition, TStepInput>.IncrementalResultKeyPostfix), structuredOutput.OutputIncrementalResult());
+                if(withStepResult)
+                {
+                    session.AddStepResult(new(GetName(), Session<TTransition, TStepInput>.IncrementalResultKeyPostfix), structuredOutput.OutputIncrementalResult());
+                }
                 _semanticStore.Add(coPilotChatRequestMessage.GetUserFirstAsPlainText(), structuredOutput.InstructionsToUserOnDetected());
                 var confirmation = CopilotConfirmationRequestMessage.GenerateConfirmationData();
                 session.SetCurrentConfirmationId(confirmation.Id);
@@ -99,7 +103,7 @@ public abstract class State<TTransition, TStepInput>
                     StepSuccess = false,
                     CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>
                     {
-                    new CoPilotChatResponseMessage(structuredOutput.InstructionsToUserOnDetected(), chatCompletionStructuredResponse.ChatCompletion, false)
+                        new CoPilotChatResponseMessage(structuredOutput.InstructionsToUserOnDetected(), chatCompletionStructuredResponse.ChatCompletion, false)
                     },
                     Message = structuredOutput.InstructionsToUserOnDetected()
                 },
@@ -125,7 +129,7 @@ public abstract class State<TTransition, TStepInput>
             }
 
             var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(promptDescriptorName);
-            requestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(promptKey));
+            requestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(promptKey), SystemMessagePriority.High);
 
             var requestMessagesContent = requestMessage.GetMessagesContent();
             
@@ -155,7 +159,7 @@ public abstract class State<TTransition, TStepInput>
             if (_isFirstRun)
             {
                 var currentStatePromptDescriptor = (CurrentStatePromptDescriptor)_promptDescriptorFactory.GetPromptDescriptor(nameof(CurrentStatePromptDescriptor));
-                coPilotChatRequestMessage.AddSystemMessage(currentStatePromptDescriptor.GetPrompt(PromptsConstants.Prompts.Keys.CurrentState));
+                coPilotChatRequestMessage.AddSystemMessage(currentStatePromptDescriptor.GetPrompt(PromptsConstants.Prompts.Keys.CurrentState), SystemMessagePriority.High);
 
                 // Query the LLM with the current state prompt
                 var chatCompletionResponse = await _llmQueryClient.Query<string>(coPilotChatRequestMessage, null, null);

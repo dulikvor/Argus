@@ -41,6 +41,7 @@ namespace ApiTestingAgent.PromptDescriptor
             public static class Keys
             {
                 public const string RestResourcesDiscoveryPromptKey = $"{nameof(RestResourcesDiscoveryPromptKey)}";
+                public const string PostRunSwaggerSummaryPromptKey = $"{nameof(PostRunSwaggerSummaryPromptKey)}";
                 public const string RestResourcesDiscoveryReturnedOutputKey = $"{nameof(RestResourcesDiscoveryReturnedOutputKey)}";
             }
         }

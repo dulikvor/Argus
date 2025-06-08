@@ -24,6 +24,6 @@ namespace Argus.Clients.LLMQuery
         }
 
         public abstract Task<ChatCompletion> CompleteChatAsync(string modelId, IEnumerable<ChatMessage> messages, ChatCompletionOptions options = null, CancellationToken cancellationToken = default);
-        public abstract AsyncCollectionResult<StreamingChatCompletionUpdate> CompleteChatStreamingAsync(string modelId, IEnumerable<UserChatMessage> messages, ChatCompletionOptions options = null, CancellationToken cancellationToken = default);
+        public abstract AsyncCollectionResult<StreamingChatCompletionUpdate> CompleteChatStreamingAsync(string modelId, IEnumerable<ChatMessage> messages, ChatCompletionOptions options = null, CancellationToken cancellationToken = default);
     }
 }

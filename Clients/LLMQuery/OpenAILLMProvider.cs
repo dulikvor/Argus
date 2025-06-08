@@ -27,7 +27,7 @@ namespace Argus.Clients.LLMQuery
             return await chatClient.CompleteChatAsync(messages, options);
         }
 
-        public override AsyncCollectionResult<StreamingChatCompletionUpdate> CompleteChatStreamingAsync(string modelId, IEnumerable<UserChatMessage> messages, ChatCompletionOptions options = null, CancellationToken cancellationToken = default)
+        public override AsyncCollectionResult<StreamingChatCompletionUpdate> CompleteChatStreamingAsync(string modelId, IEnumerable<ChatMessage> messages, ChatCompletionOptions options = null, CancellationToken cancellationToken = default)
         {
             ArgumentValidationHelper.Ensure.NotNull(modelId, "ModelId");
 

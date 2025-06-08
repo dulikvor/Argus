@@ -39,7 +39,10 @@ namespace Argus.Clients.LLMQuery
             var client = GetOrCreateClient(userName);
 
             var modelId = string.IsNullOrEmpty(coPilotChatRequestMessage.Model) ? GetDefaultModelId() : coPilotChatRequestMessage.Model;
-            var completionUpdates = client.CompleteChatStreamingAsync(modelId, coPilotChatRequestMessage.Messages.Select(message => new UserChatMessage(message.Content)));
+            coPilotChatRequestMessage.ReorderMessagesByRoleAndPriority();
+            var completionUpdates = client.CompleteChatStreamingAsync(modelId, coPilotChatRequestMessage.Messages.Select(message => message.Role == ChatMessageRole.User
+                        ? (ChatMessage)new UserChatMessage(message.Content)
+                        : (ChatMessage)new SystemChatMessage(message.Content)));
 
             var result = new List<CoPilotChatResponseMessage>();
             await foreach (StreamingChatCompletionUpdate completionUpdate in completionUpdates)
@@ -65,6 +68,8 @@ namespace Argus.Clients.LLMQuery
             {
                 chatCompletionOptions.Tools.Add(tool);
             }
+
+            coPilotChatRequestMessage.ReorderMessagesByRoleAndPriority();
             var chatCompletion = await client.CompleteChatAsync(
                 modelId,
                 coPilotChatRequestMessage.Messages.Select(message => message.Role == ChatMessageRole.User

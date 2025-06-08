@@ -4,6 +4,7 @@ using Argus.Common.Functions;
 using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
 using Argus.Common.Telemetry;
+using Argus.Contracts.OpenAI;
 using Microsoft.Extensions.Logging;
 
 namespace Argus.Common.StateMachine
@@ -36,7 +37,7 @@ namespace Argus.Common.StateMachine
                 var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(EndPromptDescriptor));
 
                 var coPilotChatRequestMessage = stepInput.CoPilotChatRequestMessage;
-                coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.Prompts.Keys.EndState));
+                coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.Prompts.Keys.EndState), SystemMessagePriority.High);
 
                 var chatCompletionResponse = await _llmQueryClient.Query(coPilotChatRequestMessage);
 

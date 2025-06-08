@@ -26,6 +26,9 @@
     <Compile Remove="Examples\**" />
     <EmbeddedResource Remove="Examples\**" />
     <None Remove="Examples\**" />
+    <Compile Remove="Tests\Argus.Tests\**" />
+    <EmbeddedResource Remove="Tests\Argus.Tests\**" />
+    <None Remove="Tests\Argus.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>

@@ -18,6 +18,7 @@
             public static class Keys
             {
                 public const string CustomerConsentStateTransitionResponseSchema = "CustomerConsentStateTransitionResponseSchema";
+                public const string StringResponseSchema = "StringResponseSchema";
             }
         }
     }

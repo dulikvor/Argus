@@ -148,10 +148,6 @@ namespace Argus.Common.Swagger
                     apiVersion = versionVal.ToString();
                 }
             }
-            if (doc.TryGetPropertyValue("x-ms-api-version", out var msApiVersionNode) && msApiVersionNode is JsonValue msApiVersionVal)
-            {
-                apiVersion = msApiVersionVal.ToString();
-            }
 
             var paths = doc["paths"] as JsonObject;
             if (paths == null) return operations;

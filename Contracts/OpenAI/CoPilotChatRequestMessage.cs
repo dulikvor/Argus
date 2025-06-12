@@ -100,6 +100,12 @@ namespace Argus.Contracts.OpenAI
             Messages = userMessages.Concat(systemMessages).ToList();
         }
 
+        public void DeleteAllUserMessages()
+        {
+            // Remove all user messages from the list
+            Messages = Messages?.Where(m => m.Role != ChatMessageRole.User).ToList() ?? new List<CopilotChatMessage>();
+        }
+
         public void AddUserMessage(string content)
         {
             var userMessage = new CopilotChatMessage

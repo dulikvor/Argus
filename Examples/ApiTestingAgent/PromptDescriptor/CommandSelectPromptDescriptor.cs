@@ -61,6 +61,9 @@ public class CommandSelectPromptDescriptor : BasePromptDescriptor
         }
         ```
 
+        Never include stray HTML tags such as `</body>` (or any `<…>` tags) in the output—automatically strip them out. End any Markdown code block with exactly three backticks (```), on their own line with no trailing characters or HTML — never output stray tags like </body>.
+        If the selected command does not require request content, set the content field to null and do not display a JSON block in the output.
+
         If the command is invalid:
         Explain what’s missing (e.g., placeholder values, content)
         Suggest exactly what the user needs to provide next
@@ -79,9 +82,6 @@ public class CommandSelectPromptDescriptor : BasePromptDescriptor
         ```json
         {}
         ```
-        
-        #### 🧼 Output Cleanliness Rule:
-        Never include stray HTML tags such as `</body>` in the output. End any Markdown code block with exactly three backticks (```), and make sure the syntax highlighting is correct (`http`, `json`, etc.).
 
         #### ⚠️ Do Not Proceed If:
         - No known command matches the user input

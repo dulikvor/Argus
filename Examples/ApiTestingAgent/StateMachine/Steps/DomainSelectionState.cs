@@ -1,5 +1,4 @@
 ﻿using ApiTestingAgent.PromptDescriptor;
-using ApiTestingAgent.Services;
 using ApiTestingAgent.StructuredResponses;
 using Argus.Clients.LLMQuery;
 using Argus.Common.Builtin.StructuredResponse;
@@ -8,8 +7,7 @@ using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
 using Argus.Common.StateMachine;
 using Argus.Common.Telemetry;
-using Argus.Contracts.OpenAI;
-using System.Diagnostics;
+using Argus.Common.Web;
 
 namespace ApiTestingAgent.StateMachine.Steps
 {
@@ -23,8 +21,9 @@ namespace ApiTestingAgent.StateMachine.Steps
             IPromptDescriptorFactory promptDescriptorFactory, 
             IFunctionDescriptorFactory functionDescriptorFactory, 
             ISemanticStore semanticStore,
-            ILogger<State<ApiTestStateTransitions, StepInput>> logger)
-            :base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, llmQueryClient, logger)
+            ILogger<State<ApiTestStateTransitions, StepInput>> logger,
+            StreamReporter streamReporter)
+            :base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, llmQueryClient, logger, streamReporter)
         {
         }
 
@@ -44,7 +43,9 @@ namespace ApiTestingAgent.StateMachine.Steps
                         context,
                         session,
                         chatCompletion,
-                        new RestDiscoveryState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger),
+                        null,
+                        null,
+                        new RestDiscoveryState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger, _streamReporter),
                         ApiTestStateTransitions.RestDiscovery);
                 }
 

@@ -7,9 +7,10 @@ using Argus.Common.Retrieval;
 using Argus.Common.StructuredResponses;
 using Argus.Common.Telemetry;
 using Argus.Contracts.OpenAI;
-using Azure;
+using Argus.Common.Web;
 using Microsoft.Extensions.Logging;
 using OpenAI.Chat;
+using System.Text.Json;
 
 namespace Argus.Common.StateMachine;
 
@@ -22,15 +23,17 @@ public abstract class State<TTransition, TStepInput>
     protected readonly ISemanticStore _semanticStore;
     protected readonly IAzureLLMQueryClient _llmQueryClient;
     protected readonly ILogger<State<TTransition, TStepInput>> _logger;
+    protected readonly StreamReporter _streamReporter;
     protected bool _isFirstRun = true;
 
-    protected State(IPromptDescriptorFactory promptDescriptorFactory, IFunctionDescriptorFactory functionDescriptorFactory, ISemanticStore semanticStore, IAzureLLMQueryClient llmQueryClient, ILogger<State<TTransition, TStepInput>> logger)
+    protected State(IPromptDescriptorFactory promptDescriptorFactory, IFunctionDescriptorFactory functionDescriptorFactory, ISemanticStore semanticStore, IAzureLLMQueryClient llmQueryClient, ILogger<State<TTransition, TStepInput>> logger, StreamReporter streamReporter)
     {
         _promptDescriptorFactory = promptDescriptorFactory;
         _functionDescriptorFactory = functionDescriptorFactory;
         _semanticStore = semanticStore;
         _llmQueryClient = llmQueryClient;
         _logger = logger;
+        _streamReporter = streamReporter;
     }
 
     public virtual string GetName() => throw new InvalidOperationException();
@@ -105,7 +108,7 @@ public abstract class State<TTransition, TStepInput>
                     {
                         new CoPilotChatResponseMessage(structuredOutput.InstructionsToUserOnDetected(), chatCompletionStructuredResponse.ChatCompletion, false)
                     },
-                    Message = structuredOutput.InstructionsToUserOnDetected()
+                    PreviousChatCompletion = chatCompletionStructuredResponse.ChatCompletion
                 },
                 retryTransition);
         });
@@ -140,7 +143,11 @@ public abstract class State<TTransition, TStepInput>
             }   
             
             var structuredOutput = new OpenAIStructuredOutput(outputKey, concretePromptDescriptor.GetStructuredResponse(outputKey));
-            var chatCompletionResponse = await _llmQueryClient.Query<TOutput>(requestMessage, structuredOutput, tools);
+
+            // Use Polly retry for LLM call
+            var chatCompletionResponse = await this.WithRetry<ChatCompletionStructuredResponse<TOutput>, JsonException>(
+                async () => await _llmQueryClient.Query<TOutput>(requestMessage, structuredOutput, tools)
+            );
 
             return chatCompletionResponse;
         }); 
@@ -172,8 +179,9 @@ public abstract class State<TTransition, TStepInput>
                     StepSuccess = false,
                     CoPilotChatResponseMessages = new List<CoPilotChatResponseMessage>()
                     {
-                    new CoPilotChatResponseMessage(chatCompletionResponse.StructuredOutput, chatCompletionResponse.ChatCompletion, false)
-                    }
+                        new CoPilotChatResponseMessage(chatCompletionResponse.StructuredOutput, chatCompletionResponse.ChatCompletion, false)
+                    },
+                    PreviousChatCompletion = chatCompletionResponse.ChatCompletion
                 },
                 nextTransition);
             }
@@ -185,7 +193,9 @@ public abstract class State<TTransition, TStepInput>
     protected (StepResult, TTransition) TransitionToNextState(
         StateContext<TTransition, TStepInput> context,
         Session<TTransition, TStepInput> session,
-        ChatCompletion previousChatCompletion,
+        ChatCompletion chatCompletion,
+        string instructionsToUserOnDetected,
+        string overrideUserMessage,
         State<TTransition, TStepInput> nextState,
         TTransition nextTransition)
     {
@@ -199,7 +209,15 @@ public abstract class State<TTransition, TStepInput>
             return new(
                 new StepResult
                 {
-                    StepSuccess = true
+                    StepSuccess = true,
+                    CoPilotChatResponseMessages = string.IsNullOrEmpty(instructionsToUserOnDetected)
+                    ? null
+                    : new List<CoPilotChatResponseMessage>
+                    {
+                        new CoPilotChatResponseMessage(instructionsToUserOnDetected, chatCompletion, true)
+                    },
+                    OverrideUserMessage = overrideUserMessage,
+                    PreviousChatCompletion = chatCompletion
                 },
                 nextTransition);
         });

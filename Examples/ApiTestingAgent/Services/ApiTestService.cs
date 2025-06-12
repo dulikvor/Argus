@@ -24,6 +24,7 @@ namespace ApiTestingAgent.Services
         private readonly IResponseStreamWriter<ServerSentEventsStreamWriter> _responseStreamWriter;
         private readonly ISemanticStore _semanticStore;
         private readonly ILogger<State<ApiTestStateTransitions, StepInput>> _logger;
+        private readonly StreamReporter _streamReporter;
 
         public ApiTestService(
             IServiceProvider serviceProvider,
@@ -32,7 +33,8 @@ namespace ApiTestingAgent.Services
             IFunctionDescriptorFactory functionDescriptorFactory, 
             IResponseStreamWriter<ServerSentEventsStreamWriter> responseStreamWriter,
             ISemanticStore semanticStore,
-            ILogger<State<ApiTestStateTransitions, StepInput>> logger)
+            ILogger<State<ApiTestStateTransitions, StepInput>> logger,
+            StreamReporter streamReporter)
         {
             _llmQueryClient = llmQueryClient;
             _promptDescriptorFactory = promptDescriptorFactory;
@@ -40,6 +42,7 @@ namespace ApiTestingAgent.Services
             _responseStreamWriter = responseStreamWriter;
             _semanticStore = semanticStore;
             _logger = logger;
+            _streamReporter = streamReporter;
         }
 
         public async Task InvokeNext(HttpContext httpContext, CoPilotChatRequestMessage coPilotChatRequestMessage)
@@ -59,14 +62,16 @@ namespace ApiTestingAgent.Services
                 }
                 else
                 {
-                    stateContext = new ApiTestsStateContext(new DomainSelectionState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger));
+                    stateContext = new ApiTestsStateContext(new DomainSelectionState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger, _streamReporter));
                     transition = ApiTestStateTransitions.ServiceInformationDiscovery;
                 }
 
                 StepResult result = default;
                 do
                 {
-                    var filteredCoPilotChatRequestMessage = coPilotChatRequestMessage.GetUserLast();
+                    var filteredCoPilotChatRequestMessage = string.IsNullOrEmpty(result?.OverrideUserMessage)
+                        ? coPilotChatRequestMessage.GetUserLast()
+                        : coPilotChatRequestMessage.CreateSingleMessageRequest(result.OverrideUserMessage);
 
                     session.SetCurrentStep(stateContext.GetCurrentState(), transition);
                     filteredCoPilotChatRequestMessage.AddSystemMessage(session.ToString(), SystemMessagePriority.Medium);
@@ -79,12 +84,12 @@ namespace ApiTestingAgent.Services
 
                     if (result.CoPilotChatResponseMessages != null)
                     {
-                        await _responseStreamWriter.WriteToStreamAsync(httpContext, result.CoPilotChatResponseMessages);
+                        await _streamReporter.ReportAsync(result.CoPilotChatResponseMessages, httpContext);
                     }
 
                     if (result.ConfirmationMessage != null)
                     {
-                        await _responseStreamWriter.WriteToStreamAsync(httpContext, new List<object> { result.ConfirmationMessage }, EventType.CopilotConfirmation);
+                        await _streamReporter.ReportAsync(result.ConfirmationMessage, httpContext);
                     }
                 }
                 while (result.StepSuccess);

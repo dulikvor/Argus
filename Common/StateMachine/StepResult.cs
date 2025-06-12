@@ -9,7 +9,7 @@ namespace Argus.Common.StateMachine
         public IReadOnlyList<CoPilotChatResponseMessage> CoPilotChatResponseMessages { get; set; }
         public IList<FunctionResponse> FunctionResponses { get; set; }
         public ChatCompletion PreviousChatCompletion { get; set; }
-        public string Message { get; set; }
+        public string OverrideUserMessage { get; set; }
         public CopilotConfirmationRequestMessage ConfirmationMessage { get; set; }
     }
 }

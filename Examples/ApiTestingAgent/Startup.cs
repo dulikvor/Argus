@@ -14,6 +14,7 @@ using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
 using Argus.Common.Telemetry;
 using Argus.Common.Web;
+using Argus.Common.Web.Filters;
 using Argus.Data;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
@@ -35,7 +36,10 @@ public class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         ConfigurationBinding(services);
-        services.AddControllers();
+        services.AddControllers(options =>
+        {
+            options.Filters.Add(typeof(HttpContextCallContextFilter));
+        });
         services.AddAuthentication(GitHubAuthenticationHandler.GitHubScheme)
             .AddScheme<GitHubAuthenticationSchemeOptions, GitHubAuthenticationHandler>(GitHubAuthenticationHandler.GitHubScheme, options => { });
 
@@ -58,6 +62,11 @@ public class Startup
         services.AddSingleton<IApiTestService, ApiTestService>();
 
         services.AddSingleton<IResponseStreamWriter<ServerSentEventsStreamWriter>, ServerSentEventsStreamWriter>();
+        services.AddSingleton<StreamReporter>(sp =>
+        {
+            var streamWriter = sp.GetRequiredService<IResponseStreamWriter<ServerSentEventsStreamWriter>>();
+            return new StreamReporter(streamWriter);
+        });
         services.AddSingleton<ISemanticStore, SemanticStore>();
 
         services.AddSingleton<ITypedHttpServiceClientFactory, TypedHttpServiceClientFactory>();

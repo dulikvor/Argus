@@ -30,12 +30,19 @@ public class CommandInvocationPromptDescriptor : StringPromptDescriptor
             "  - Report what was expected.\n" +
             "  - Report what was the actual outcome.\n" +
             "  - Explain clearly the difference between the two.\n" +
+            "  - If the issue could likely be fixed by changing **only the request content** (e.g., request body or parameters), construct a **rephrased natural-language instruction** as if from the user. This should:\n" +
+            "    - Use the selected command as a base.\n" +
+            "    - Describe clearly the change needed.\n" +
+            "    - Be returned in the field `correctedUserMessage`.\n" +
+            "    - Only appear if the command failure is fixable by content alone (do not suggest alternatives if a different command is required).\n" +
             "- If there is no expected outcome, summarize the result briefly and clearly.\n" +
             "\n" +
             "### 🧾 OUTPUT STRUCTURE\n" +
             "Return a **valid JSON object** with the following shape:\n" +
             "{\n" +
-            "  \"analysis\": \"<Full user-facing message, including all required sections>\"\n" +
+            "  \"analysis\": \"<Full user-facing message, including all required sections>\",\n" +
+            "  \"outcomeMatched\": <true or false>,\n" +
+            "  \"correctedUserMessage\": \"<Rephrased user intent>\" // Only present if applicable\n" +
             "}\n" +
             "\n" +
             "### 📋 CONTENT OF `analysis` FIELD\n" +
@@ -43,7 +50,7 @@ public class CommandInvocationPromptDescriptor : StringPromptDescriptor
             "1. 🧭 **Selected Command** – Summarize the invoked command (method, URI, and body).\n" +
             "2. 🎯 **Expected Outcome** – If it exists, show the expected status and content.\n" +
             "3. 📬 **Actual Result** – Present the actual HTTP status and returned content.\n" +
-            "4. 🧠 **Analysis** – Provide a short, informative summary or expected vs. actual comparison.\n" +
+            "4. 🧠 **Analysis** – Provide a short, informative summary or expected vs. actual comparison. If a fix is possible by changing the content only, state that clearly.\n" +
             "\n" +
             "Use Markdown-style formatting to improve clarity:\n" +
             "- Bold headers with emojis.\n" +
@@ -54,10 +61,13 @@ public class CommandInvocationPromptDescriptor : StringPromptDescriptor
             "- Do **not** guess or fabricate missing data.\n" +
             "- Do **not** perform the analysis unless both a selected command and a result exist.\n" +
             "- Do **not** return anything other than the required JSON object.\n" +
+            "- Only provide `correctedUserMessage` if you are confident the current command could succeed by adjusting the content alone. Do not suggest a new command.\n" +
             "\n" +
             "### 📌 EXAMPLE OUTPUT FORMAT\n" +
             "{\n" +
-            "  \"analysis\": \"🧭 **Selected Command:**\\nHTTP PUT to `https://localhost:5001/subscriptions/bbf99725-4174-4a55-a11c-94cf2eea98a6/resourceGroups/DudiTest/providers/Microsoft.OperationalInsights/workspaces/dudi-kuku3/tables/Perf`\\nBody:\\n```json\\n{\\n  \\\"properties\\\": {\\n    \\\"totalRetentionInDays\\\": 100\\n  },\\n  \\\"systemData\\\": {}\\n}\\n```\\n\\n🎯 **Expected Outcome:**\\n_No specific expected outcome was defined._\\n\\n📬 **Actual Result:**\\nHTTP Status: `0`\\nContent:\\n```\nAn error occurred while invoking the command: No connection could be made because the target machine actively refused it. (localhost:5001).\\n```\\n\\n🧠 **Analysis:**\\nThe command failed due to a connection issue with the target service at `localhost:5001`. This typically means the service is not running or is actively rejecting connections. Since no expected outcome was defined, this is reported as a connectivity failure that blocked execution.\"\n" +
+            "  \"analysis\": \"🧭 **Selected Command:**\\nHTTP PUT to `https://localhost:5001/subscriptions/bbf99725-4174-4a55-a11c-94cf2eea98a6/resourceGroups/DudiTest/providers/Microsoft.OperationalInsights/workspaces/dudi-kuku3/tables/Perf`\\nBody:\\n```json\\n{\\n  \\\"properties\\\": {\\n    \\\"totalRetentionInDays\\\": 100\\n  },\\n  \\\"systemData\\\": {}\\n}\\n```\\n\\n🎯 **Expected Outcome:**\\n_No specific expected outcome was defined._\\n\\n📬 **Actual Result:**\\nHTTP Status: `0`\\nContent:\\n```\nAn error occurred while invoking the command: No connection could be made because the target machine actively refused it. (localhost:5001).\\n```\\n\\n🧠 **Analysis:**\\nThe command failed due to a connection issue with the target service at `localhost:5001`. This typically means the service is not running or is actively rejecting connections. Since no expected outcome was defined, this is reported as a connectivity failure that blocked execution.\",\n" +
+            "  \"outcomeMatched\": false,\n" +
+            "  \"correctedUserMessage\": null\n" +
             "}\n";
 
         // Add a prompt to explain the result of a REST API invocation to the user
@@ -121,7 +131,13 @@ public class CommandInvocationPromptDescriptor : StringPromptDescriptor
             type = "object",
             properties = new
             {
-                analysis = new { type = "string", description = "Full user-facing message, including all required sections." }
+                analysis = new { type = "string", description = "Full user-facing message, including all required sections." },
+                outcomeMatched = new { type = "boolean", description = "True if the actual result matches the expected outcome." },
+                correctedUserMessage = new
+                {
+                    type = "string",
+                    description = "If expectations were not met and a content-only change would likely fix it, provide a revised natural-language user instruction to guide command selection."
+                }
             },
             required = new[] { "analysis" }
         };

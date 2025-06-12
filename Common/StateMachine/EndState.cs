@@ -4,6 +4,7 @@ using Argus.Common.Functions;
 using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
 using Argus.Common.Telemetry;
+using Argus.Common.Web;
 using Argus.Contracts.OpenAI;
 using Microsoft.Extensions.Logging;
 
@@ -20,8 +21,9 @@ namespace Argus.Common.StateMachine
             IPromptDescriptorFactory promptDescriptorFactory, 
             IFunctionDescriptorFactory functionDescriptorFactory,
             ISemanticStore semanticStore,
-            ILogger<State<TTransition, TStepInput>> logger)
-            : base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, llmQueryClient, logger)
+            ILogger<State<TTransition, TStepInput>> logger,
+            StreamReporter streamReporter)
+            : base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, llmQueryClient, logger, streamReporter)
         {
         }
 

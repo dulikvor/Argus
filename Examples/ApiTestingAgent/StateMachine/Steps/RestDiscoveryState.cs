@@ -9,6 +9,7 @@ using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
 using Argus.Common.StateMachine;
 using Argus.Common.Telemetry;
+using Argus.Common.Web;
 using Argus.Contracts.OpenAI;
 using OpenAI.Chat;
 using System.Net;
@@ -28,8 +29,9 @@ namespace ApiTestingAgent.StateMachine.Steps
             IPromptDescriptorFactory promptDescriptorFactory,
             IFunctionDescriptorFactory functionDescriptorFactory, 
             ISemanticStore semanticStore,
-            ILogger<State<ApiTestStateTransitions, StepInput>> logger)
-            :base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, llmQueryClient, logger)
+            ILogger<State<ApiTestStateTransitions, StepInput>> logger,
+            StreamReporter streamReporter)
+            :base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, llmQueryClient, logger, streamReporter)
         {
         }
 
@@ -131,7 +133,7 @@ namespace ApiTestingAgent.StateMachine.Steps
                 sb.Append($"Returned HttpStatus: {httpStatusCode}\n");
                 sb.Append(string.IsNullOrEmpty(errorMessage) ? string.Empty : $"Returned Error Message: {errorMessage}\n");
                 sb.Append($"Rest operations returned:\n");
-                apiTestSession.Resources.Select(op => $"Operation HttpMethod: {op.HttpMethod}, Url: {op.Url}").ToList().ForEach(op => sb.AppendLine(op));
+                apiTestSession.Resources.Select(op => $"Operation HttpMethod: {op.HttpMethod}, Url: {op.Url}?api-version={op.ApiVersion}").ToList().ForEach(op => sb.AppendLine(op));
                 sb.AppendLine();
 
                 session.AddStepResult(new(GetName(), Session<ApiTestStateTransitions, StepInput>.IncrementalResultKeyPostfix), sb.ToString());
@@ -153,7 +155,9 @@ namespace ApiTestingAgent.StateMachine.Steps
                         context,
                         session,
                         chatCompletion,
-                        new CommandInvocationState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger),
+                        null,
+                        null,
+                        new CommandInvocationState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger, _streamReporter),
                         ApiTestStateTransitions.CommandInvocationAnalysis);
                 }
 

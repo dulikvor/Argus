@@ -30,8 +30,8 @@ public class ServerSentEventsStreamWriter : IResponseStreamWriter<ServerSentEven
                 ? "data: " + serializedMessage + "\n\n"
                 : "event: " + eventType.ToSerializedString() + "\ndata: " + serializedMessage + "\n\n";
             await httpContext.Response.WriteAsync(messageString);
+            await httpContext.Response.Body.FlushAsync();
         }
-        await httpContext.Response.Body.FlushAsync();
     }
 
     public async Task CompleteStream(HttpContext httpContext)

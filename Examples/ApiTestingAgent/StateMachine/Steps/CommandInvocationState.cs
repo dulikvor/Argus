@@ -1,4 +1,4 @@
-using ApiTestingAgent.PromptDescriptor;
+﻿using ApiTestingAgent.PromptDescriptor;
 using ApiTestingAgent.Services;
 using ApiTestingAgent.StructuredResponses;
 using Argus.Clients.LLMQuery;
@@ -10,7 +10,7 @@ using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
 using Argus.Common.StateMachine;
 using Argus.Common.Telemetry;
-using Argus.Contracts.OpenAI;
+using Argus.Common.Web;
 using OpenAI.Chat;
 using System.Net;
 using System.Text;
@@ -29,8 +29,9 @@ namespace ApiTestingAgent.StateMachine.Steps
             IPromptDescriptorFactory promptDescriptorFactory,
             IFunctionDescriptorFactory functionDescriptorFactory,
             ISemanticStore semanticStore,
-            ILogger<State<ApiTestStateTransitions, StepInput>> logger)
-            : base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, llmQueryClient, logger)
+            ILogger<State<ApiTestStateTransitions, StepInput>> logger,
+            StreamReporter streamReporter)
+            : base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, llmQueryClient, logger, streamReporter)
         {
         }
 
@@ -71,7 +72,9 @@ namespace ApiTestingAgent.StateMachine.Steps
                         context,
                         session,
                         chatCompletion,
-                        new EndState<ApiTestStateTransitions, StepInput>(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger),
+                        null,
+                        null,
+                        new EndState<ApiTestStateTransitions, StepInput>(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger, _streamReporter),
                         ApiTestStateTransitions.Any);
                 }
 
@@ -92,7 +95,21 @@ namespace ApiTestingAgent.StateMachine.Steps
                 session.ResetStepResult(new(GetName(), Session<ApiTestStateTransitions, StepInput>.IncrementalResultKeyPostfix));
 
                 var structuredOutput = chatCompletionResponse.StructuredOutput;
+                activityScope.Activity.SetTag("OutcomeMatched", structuredOutput.OutcomeMatched);
+                activityScope.Activity.SetTag("CorrectedUserMessage", structuredOutput.CorrectedUserMessage);
 
+                if (!structuredOutput.OutcomeMatched)
+                {
+                    return TransitionToNextState(
+                        context,
+                        session,
+                        chatCompletionResponse.ChatCompletion,
+                        structuredOutput.InstructionsToUserOnDetected(),
+                        structuredOutput.CorrectedUserMessage,
+                        new CommandSelectState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger, _streamReporter),
+                        ApiTestStateTransitions.CommandDiscovery);
+                }
+                
                 return DetectAndConfirm(
                         session,
                         stepInput,
@@ -123,6 +140,11 @@ namespace ApiTestingAgent.StateMachine.Steps
                     new List<ChatTool> { concreteFunctionDescriptor.ToolDefinition });
 
                 var arguments = concreteFunctionDescriptor.GetParameters<RestToolFunctionDescriptor.RestToolParametersType>(JsonSerializer.Serialize(chatCompletionResponse.FunctionResponses.First().FunctionArguments));
+
+                await _streamReporter.ReportAsync(
+                    "🔄 Calling the service. Please wait while the function runs...",
+                    stepInput.PreviousStepResult.PreviousChatCompletion
+                );
 
                 HttpStatusCode httpStatus = default;
                 string content = null;
@@ -186,13 +208,17 @@ namespace ApiTestingAgent.StateMachine.Steps
                 null);
 
                 var output = chatCompletionResponse.StructuredOutput;
+                activityScope.Activity.SetTag("NextStateSelected", output.NextState);
+
                 if (output.NextState == "ExpectedOutcomeSelect")
                 {
                     return TransitionToNextState(
                         context,
                         session,
                         chatCompletionResponse.ChatCompletion,
-                        new ExpectedOutcomeState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger),
+                        null,
+                        null,
+                        new ExpectedOutcomeState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger, _streamReporter),
                         ApiTestStateTransitions.ExpectedOutcome);
                 }
                 else if (output.NextState == "CommandSelect")
@@ -201,7 +227,9 @@ namespace ApiTestingAgent.StateMachine.Steps
                         context,
                         session,
                         chatCompletionResponse.ChatCompletion,
-                        new CommandSelectState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger),
+                        null,
+                        null,
+                        new CommandSelectState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger, _streamReporter),
                         ApiTestStateTransitions.CommandDiscovery);
                 }
                 else if (output.NextState == "CommandInvocation")
@@ -210,6 +238,8 @@ namespace ApiTestingAgent.StateMachine.Steps
                         context,
                         session,
                         chatCompletionResponse.ChatCompletion,
+                        null,
+                        null,
                         this,
                         ApiTestStateTransitions.CommandInvocation);
                 }

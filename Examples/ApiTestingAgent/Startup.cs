@@ -47,9 +47,9 @@ public class Startup
         services.AddSingleton<IPromptDescriptor, CurrentStatePromptDescriptor>();
         services.AddSingleton<IPromptDescriptor, CustomerConsentStateTransitionPromptDescriptor>();
         services.AddSingleton<IPromptDescriptor, ContextPromptDescriptor>();
-        services.AddSingleton<IPromptDescriptor, ApiTestsPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, ApiTestsSessionPromptDescriptor>();
         services.AddSingleton<IPromptDescriptor, ServiceInformationPromptDescriptor>();
-        services.AddSingleton<IPromptDescriptor, CommandDiscoveryPromptDescriptor>();
+        services.AddSingleton<IPromptDescriptor, CommandSelectPromptDescriptor>();
         services.AddSingleton<IPromptDescriptor, RestDiscoveryPromptDescriptor>();
         services.AddSingleton<IPromptDescriptor, CommandInvocationPromptDescriptor>();
         services.AddSingleton<IPromptDescriptor, ExpectedOutcomePromptDescriptor>();

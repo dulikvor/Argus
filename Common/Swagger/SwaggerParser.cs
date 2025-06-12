@@ -10,6 +10,7 @@ namespace Argus.Common.Swagger
         public string HttpMethod { get; set; }
         public string Url { get; set; }
         public JsonNode Content { get; set; } // null if not present
+        public string ApiVersion { get; set; } // new property
     }
 
     public class SwaggerParser
@@ -138,6 +139,20 @@ namespace Argus.Common.Swagger
             var doc = JsonNode.Parse(swaggerJson);
             if (doc == null) return operations;
 
+            // Try to get api-version from top-level info.version or x-ms-api-version
+            string apiVersion = null;
+            if (doc["info"] is JsonObject infoObj)
+            {
+                if (infoObj.TryGetPropertyValue("version", out var versionNode) && versionNode is JsonValue versionVal)
+                {
+                    apiVersion = versionVal.ToString();
+                }
+            }
+            if (doc.TryGetPropertyValue("x-ms-api-version", out var msApiVersionNode) && msApiVersionNode is JsonValue msApiVersionVal)
+            {
+                apiVersion = msApiVersionVal.ToString();
+            }
+
             var paths = doc["paths"] as JsonObject;
             if (paths == null) return operations;
 
@@ -235,7 +250,8 @@ namespace Argus.Common.Swagger
                     {
                         HttpMethod = httpMethod,
                         Url = url,
-                        Content = content
+                        Content = content,
+                        ApiVersion = apiVersion
                     });
                 }
             }

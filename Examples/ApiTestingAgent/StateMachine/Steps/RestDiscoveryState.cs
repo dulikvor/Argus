@@ -1,6 +1,5 @@
 ﻿using ApiTestingAgent.PromptDescriptor;
 using ApiTestingAgent.Services;
-using ApiTestingAgent.StructuredResponses;
 using Argus.Clients.LLMQuery;
 using Argus.Common.Builtin.Functions;
 using Argus.Common.Builtin.StructuredResponse;
@@ -11,10 +10,7 @@ using Argus.Common.Retrieval;
 using Argus.Common.StateMachine;
 using Argus.Common.Telemetry;
 using Argus.Contracts.OpenAI;
-using Microsoft.Extensions.Primitives;
 using OpenAI.Chat;
-using OpenTelemetry.Trace;
-using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -97,7 +93,6 @@ namespace ApiTestingAgent.StateMachine.Steps
                 var coPilotChatRequestMessage = stepInput.CoPilotChatRequestMessage.GetUserLast();
                 coPilotChatRequestMessage.AddSystemMessage(session.ToString(), SystemMessagePriority.Medium);
 
-                var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(RestDiscoveryPromptDescriptor));
                 var chatCompletionResponse = await QueryLLM<StringResponse>(
                     coPilotChatRequestMessage,
                     nameof(RestDiscoveryPromptDescriptor),
@@ -129,17 +124,18 @@ namespace ApiTestingAgent.StateMachine.Steps
             if (operations?.Any() == true)
             {
                 apiTestSession.MergeOrAddResources(operations);
-            }
 
-            var sb = new StringBuilder();
-            sb.Append($"Detected Rest operations:\n");
-            sb.Append($"Route used to get the operations: {toolArguments}\n");
-            sb.Append($"Returned HttpStatus: {httpStatusCode}\n");
-            sb.Append(string.IsNullOrEmpty(errorMessage) ? string.Empty : $"Returned Error Message: {errorMessage}\n");
-            sb.Append($"Rest operations returned:\n");
-            apiTestSession.Resources.Select(op => $"Operation HttpMethod: {op.HttpMethod}, Url: {op.Url}").ToList().ForEach(op => sb.AppendLine(op));
-            sb.AppendLine();
-            session.AddStepResult(new(GetName(), Session<ApiTestStateTransitions, StepInput>.IncrementalResultKeyPostfix), sb.ToString());
+                var sb = new StringBuilder();
+                sb.Append($"Detected Rest operations:\n");
+                sb.Append($"Route used to get the operations: {toolArguments}\n");
+                sb.Append($"Returned HttpStatus: {httpStatusCode}\n");
+                sb.Append(string.IsNullOrEmpty(errorMessage) ? string.Empty : $"Returned Error Message: {errorMessage}\n");
+                sb.Append($"Rest operations returned:\n");
+                apiTestSession.Resources.Select(op => $"Operation HttpMethod: {op.HttpMethod}, Url: {op.Url}").ToList().ForEach(op => sb.AppendLine(op));
+                sb.AppendLine();
+
+                session.AddStepResult(new(GetName(), Session<ApiTestStateTransitions, StepInput>.IncrementalResultKeyPostfix), sb.ToString());
+            }
         }
 
         private async Task<(StepResult, ApiTestStateTransitions)> RestDiscovery(

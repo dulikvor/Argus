@@ -24,6 +24,7 @@ namespace ApiTestingAgent.PromptDescriptor
             public static class Keys
             {
                 public const string StateMachineKey = $"{nameof(StateMachineKey)}";
+                public const string DetectedOperationsKey = $"{nameof(DetectedOperationsKey)}";
             }
         }
 
@@ -46,7 +47,7 @@ namespace ApiTestingAgent.PromptDescriptor
             }
         }
 
-        public static class CommandDiscovery
+        public static class CommandSelect
         {
             public static class Keys
             {
@@ -72,7 +73,8 @@ namespace ApiTestingAgent.PromptDescriptor
                 public const string HttpMethod = "HttpMethod";
                 public const string ResponseContent = "ResponseContent";
                 public const string CommandInvocationPromptKey = "CommandInvocationPromptKey";
-                public const string CommandInvocationReturnedOutputKey = "CommandInvocationReturnedOutputKey";
+                public const string CommandInvocationAnalysisPromptKey = "CommandInvocationAnalysisPromptKey";
+                public const string CommandInvocationAnalysisReturnedOutputKey = "CommandInvocationAnalysisReturnedOutputKey";
                 public const string CommandInvocationHttpResultExplanationPromptKey = "CommandInvocationHttpResultExplanationPromptKey";
                 public const string CommandInvocationDetectNextStatePromptKey = "CommandInvocationDetectNextStatePromptKey";
                 public const string CommandInvocationDetectNextStateOutputKey = "CommandInvocationDetectNextStateOutputKey";

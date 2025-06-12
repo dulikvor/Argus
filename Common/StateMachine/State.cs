@@ -143,7 +143,7 @@ public abstract class State<TTransition, TStepInput>
             var chatCompletionResponse = await _llmQueryClient.Query<TOutput>(requestMessage, structuredOutput, tools);
 
             return chatCompletionResponse;
-        });
+        }); 
     }
 
     protected void AddSemanticContext(string inputText, string outputText)

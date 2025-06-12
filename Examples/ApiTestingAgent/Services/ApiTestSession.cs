@@ -1,7 +1,6 @@
 using ApiTestingAgent.PromptDescriptor;
 using ApiTestingAgent.StateMachine;
 using ApiTestingAgent.StateMachine.Steps;
-using ApiTestingAgent.StructuredResponses;
 using Argus.Common.StateMachine;
 using Argus.Common.Swagger;
 
@@ -26,9 +25,8 @@ public class ApiTestSession : Session<ApiTestStateTransitions, StepInput>
 
     public bool ResourcesExists() => Resources.Any();
 
-    public void MergeOrAddResource(SwaggerOperation operation)
+    public void MergeOrAddResource(ref List<SwaggerOperation> resources, SwaggerOperation operation)
     {
-        var resources = Resources;
         var existing = resources.Find(r => r.Url == operation.Url && r.HttpMethod.Equals(operation.HttpMethod, StringComparison.OrdinalIgnoreCase));
         if (existing != null)
         {
@@ -43,14 +41,15 @@ public class ApiTestSession : Session<ApiTestStateTransitions, StepInput>
 
     public void MergeOrAddResources(IEnumerable<SwaggerOperation> operations)
     {
+        var resources = Resources;
         foreach (var op in operations)
         {
-            MergeOrAddResource(op);
+            MergeOrAddResource(ref resources, op);
         }
 
-        if (Resources?.Any() == true)
+        if (resources?.Any() == true)
         {
-            StepResult[CompileKey(nameof(RestDiscoveryState), PromptsConstants.SessionResult.Keys.DetectedResourcesKey)] = Resources;
+            StepResult[CompileKey(nameof(RestDiscoveryState), PromptsConstants.SessionResult.Keys.DetectedResourcesKey)] = resources;
         }
     }
 

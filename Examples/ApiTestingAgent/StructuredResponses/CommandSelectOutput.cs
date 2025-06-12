@@ -1,9 +1,10 @@
 using Argus.Common.StructuredResponses;
+using System.Text;
 using System.Text.Json.Serialization;
 
 namespace ApiTestingAgent.StructuredResponses;
 
-public class CommandDiscoveryOutput : BaseOutput
+public class CommandSelectOutput : BaseOutput
 {
     [JsonPropertyName("commandIsValid")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -29,21 +30,6 @@ public class CommandDiscoveryOutput : BaseOutput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool CommandDiscoveryDetectedInCurrentIteration { get; set; } // Indicates if a change due to user request was detected, such as updates to the selected command method, URI, or placeholders.
 
-    public override string ToString()
-    {
-        var formattedMessage = "**HTTP Method**: \"" + HttpMethod + "\"\n\n";
-        formattedMessage += "**Request URI**: \"" + RequestUri + "\"\n\n";
-
-        if (!string.IsNullOrWhiteSpace(Content))
-        {
-            formattedMessage += "**Request Content**:\n```json\n";
-            formattedMessage += Content;
-            formattedMessage += "\n```\n";
-        }
-
-        return formattedMessage;
-    }
-
     public override string InstructionsToUserOnDetected()
     {
         return InstructionsToUser;
@@ -51,6 +37,13 @@ public class CommandDiscoveryOutput : BaseOutput
 
     public override string OutputIncrementalResult()
     {
-        return ToString();
+        var sb = new StringBuilder();
+        sb.Append($"Selected Command:\n");
+        sb.Append($"Http Method: {HttpMethod}\n");
+        sb.Append($"Request Uri: {RequestUri}\n");
+        sb.Append($"Request Content:```json\n{Content}\n```\n");
+        sb.AppendLine();
+
+        return sb.ToString();
     }
 }

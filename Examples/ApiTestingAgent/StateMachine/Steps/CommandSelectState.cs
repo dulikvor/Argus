@@ -1,4 +1,5 @@
 using ApiTestingAgent.PromptDescriptor;
+using ApiTestingAgent.Services;
 using ApiTestingAgent.StructuredResponses;
 using Argus.Clients.LLMQuery;
 using Argus.Common.Builtin.StructuredResponse;
@@ -7,14 +8,15 @@ using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
 using Argus.Common.StateMachine;
 using Argus.Common.Telemetry;
+using Argus.Contracts.OpenAI;
 
 namespace ApiTestingAgent.StateMachine.Steps
 {
-    public class CommandDiscoveryState : State<ApiTestStateTransitions, StepInput>
+    public class CommandSelectState : State<ApiTestStateTransitions, StepInput>
     {
-        public override string GetName() => nameof(CommandDiscoveryState);
+        public override string GetName() => nameof(CommandSelectState);
 
-        public CommandDiscoveryState(
+        public CommandSelectState(
             IAzureLLMQueryClient llmQueryClient,
             IPromptDescriptorFactory promptDescriptorFactory,
             IFunctionDescriptorFactory functionDescriptorFactory,
@@ -30,13 +32,9 @@ namespace ApiTestingAgent.StateMachine.Steps
             ApiTestStateTransitions transition,
             StepInput stepInput)
         {
-            using var activityScope = ActivityScope.Create(nameof(CommandDiscoveryState));
+            using var activityScope = ActivityScope.Create(nameof(CommandSelectState));
             return await activityScope.Monitor(async () =>
             {
-                if (_isFirstRun)
-                {
-                    return await Introduction(stepInput.CoPilotChatRequestMessage, transition);
-                }
                 if (transition == ApiTestStateTransitions.CommandDiscovery)
                 {
                     var (isConsentGiven, action, chatCompletion) = await CheckCustomerConsent(session, stepInput);
@@ -47,14 +45,18 @@ namespace ApiTestingAgent.StateMachine.Steps
                             session,
                             chatCompletion,
                             new CommandInvocationState(_llmQueryClient, _promptDescriptorFactory, _functionDescriptorFactory, _semanticStore, _logger),
-                            ApiTestStateTransitions.CommandInvocationAnalysis);
+                            ApiTestStateTransitions.CommandInvocation);
                     }
 
-                    var chatCompletionStructuredResponse = await QueryLLM<CommandDiscoveryOutput>(
+                    var apiTestSession = (ApiTestSession)session;
+                    var apiTestsSessionPromptDescriptor = (ApiTestsSessionPromptDescriptor)_promptDescriptorFactory.GetPromptDescriptor(nameof(ApiTestsSessionPromptDescriptor));
+                    stepInput.CoPilotChatRequestMessage.AddSystemMessage(apiTestsSessionPromptDescriptor.ReconcileDetectedOperationContextPrompt(apiTestSession.Resources), SystemMessagePriority.Medium);
+
+                    var chatCompletionStructuredResponse = await QueryLLM<CommandSelectOutput>(
                         stepInput.CoPilotChatRequestMessage,
-                        nameof(CommandDiscoveryPromptDescriptor),
-                        PromptsConstants.CommandDiscovery.Keys.RestSelectPromptKey,
-                        PromptsConstants.CommandDiscovery.Keys.RestSelectReturnedOutputKey,
+                        nameof(CommandSelectPromptDescriptor),
+                        PromptsConstants.CommandSelect.Keys.RestSelectPromptKey,
+                        PromptsConstants.CommandSelect.Keys.RestSelectReturnedOutputKey,
                         null);
 
                     return DetectAndConfirm(

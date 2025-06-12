@@ -1,44 +1,64 @@
 using ApiTestingAgent.StructuredResponses;
-using Argus.Common.PromptDescriptors;
+using Argus.Common.Builtin.PromptDescriptor;
 using System.Text.Json;
 
 namespace ApiTestingAgent.PromptDescriptor;
-public class CommandInvocationPromptDescriptor : BasePromptDescriptor
+public class CommandInvocationPromptDescriptor : StringPromptDescriptor
 {
     public override string DescriptorType => nameof(CommandInvocationPromptDescriptor);
 
     public CommandInvocationPromptDescriptor()
     {
-        Initialize();
     }
 
     protected override void Initialize()
     {
+        base.Initialize();
         // Initialize prompts
-        Prompts[PromptsConstants.CommandInvocation.Keys.CommandInvocationPromptKey] =
-            "### CURRENT STATE & GOAL\n\n" +
-            "State: CommandInvocationState\n\n" +
-            "Notes:\n" +
-            "You are tasked with reviewing the result of a REST API command execution.\n" +
-            "The user will provide the expected outcome (such as HTTP status, error presence, or specific response content).\n" +
-            "You will receive the actual invocation result (status, error, content) as context.\n\n" +
-            "1. Compare the actual result with the expected outcome.\n" +
-            "2. If everything matches:\n" +
-            "   - Set stepIsConcluded to true.\n" +
-            "   - Provide a clear, concise summary of the result confirming success.\n" +
-            "3. If there is any mismatch:\n" +
-            "   - Set stepIsConcluded to false.\n" +
-            "   - Explain in detail what was expected vs what was received.\n" +
-            "   - Provide a human-readable recommendation for what the user should try next to achieve the expected result.\n" +
-            "   - Do not suggest automated tool calls or continue execution steps.\n" +
-            "4. Always include:\n" +
-            "   - The current status: what is known (command, expected outcome, actual result).\n" +
-            "   - The current state: what phase we’re in (e.g., comparing result, waiting for input).\n" +
-            "   - A clear analysis to help the user understand and correct the issue manually.\n\n" +
-            "Your output must include only two fields:\n" +
-            "- stepIsConcluded (true/false)\n" +
-            "- analysis (a plain-language explanation and recommendation)\n\n" +
-            "Do not include tool calls or execution plans. Focus on actionable advice and clarity for the user.";
+        Prompts[PromptsConstants.CommandInvocation.Keys.CommandInvocationAnalysisPromptKey] =
+            "📊 Analyze the result of a recently invoked command using the information provided in the context.\n" +
+            "\n" +
+            "### ✅ MANDATORY PRECONDITIONS\n" +
+            "- Both a selected command and a command result **must** be present in the context.\n" +
+            "- The command result includes:\n" +
+            "  - `HttpStatus`\n" +
+            "  - `Content` (optional)\n" +
+            "\n" +
+            "### 🎯 GOAL\n" +
+            "- If an expected outcome is defined in the context, analyze the actual result against the expected outcome.\n" +
+            "- If the actual result does **not** match the expected:\n" +
+            "  - Report what was expected.\n" +
+            "  - Report what was the actual outcome.\n" +
+            "  - Explain clearly the difference between the two.\n" +
+            "- If there is no expected outcome, summarize the result briefly and clearly.\n" +
+            "\n" +
+            "### 🧾 OUTPUT STRUCTURE\n" +
+            "Return a **valid JSON object** with the following shape:\n" +
+            "{\n" +
+            "  \"analysis\": \"<Full user-facing message, including all required sections>\"\n" +
+            "}\n" +
+            "\n" +
+            "### 📋 CONTENT OF `analysis` FIELD\n" +
+            "The `analysis` value must be a single string containing these **four labeled sections**, each with a relevant emoji icon:\n" +
+            "1. 🧭 **Selected Command** – Summarize the invoked command (method, URI, and body).\n" +
+            "2. 🎯 **Expected Outcome** – If it exists, show the expected status and content.\n" +
+            "3. 📬 **Actual Result** – Present the actual HTTP status and returned content.\n" +
+            "4. 🧠 **Analysis** – Provide a short, informative summary or expected vs. actual comparison.\n" +
+            "\n" +
+            "Use Markdown-style formatting to improve clarity:\n" +
+            "- Bold headers with emojis.\n" +
+            "- Inline code formatting for URI, method, and status using backticks.\n" +
+            "- JSON payloads in triple backtick blocks.\n" +
+            "\n" +
+            "### ❌ IMPORTANT RULES\n" +
+            "- Do **not** guess or fabricate missing data.\n" +
+            "- Do **not** perform the analysis unless both a selected command and a result exist.\n" +
+            "- Do **not** return anything other than the required JSON object.\n" +
+            "\n" +
+            "### 📌 EXAMPLE OUTPUT FORMAT\n" +
+            "{\n" +
+            "  \"analysis\": \"🧭 **Selected Command:**\\nHTTP PUT to `https://localhost:5001/subscriptions/bbf99725-4174-4a55-a11c-94cf2eea98a6/resourceGroups/DudiTest/providers/Microsoft.OperationalInsights/workspaces/dudi-kuku3/tables/Perf`\\nBody:\\n```json\\n{\\n  \\\"properties\\\": {\\n    \\\"totalRetentionInDays\\\": 100\\n  },\\n  \\\"systemData\\\": {}\\n}\\n```\\n\\n🎯 **Expected Outcome:**\\n_No specific expected outcome was defined._\\n\\n📬 **Actual Result:**\\nHTTP Status: `0`\\nContent:\\n```\nAn error occurred while invoking the command: No connection could be made because the target machine actively refused it. (localhost:5001).\\n```\\n\\n🧠 **Analysis:**\\nThe command failed due to a connection issue with the target service at `localhost:5001`. This typically means the service is not running or is actively rejecting connections. Since no expected outcome was defined, this is reported as a connectivity failure that blocked execution.\"\n" +
+            "}\n";
 
         // Add a prompt to explain the result of a REST API invocation to the user
         Prompts[PromptsConstants.CommandInvocation.Keys.CommandInvocationHttpResultExplanationPromptKey] =
@@ -48,41 +68,66 @@ public class CommandInvocationPromptDescriptor : BasePromptDescriptor
             "If the status indicates an error, explain the error and what it means for the user.\n" +
             "Always use user-friendly language and avoid technical jargon where possible.";
 
+        Prompts[PromptsConstants.CommandInvocation.Keys.CommandInvocationPromptKey] = @"
+        You are a REST API assistant.
+        A command has been selected. It includes:
+        - `httpMethod`: the HTTP method (e.g., GET, POST)
+        - `url`: the full endpoint URL
+        - `content`: an optional object representing the body payload
+
+        Your task is to generate a valid JSON input for the `RestTool` with the following structure:
+        {
+          ""method"": ""GET | POST | ..."", 
+          ""url"": ""https://..."", 
+          ""headers"": { ... },           // optional 
+          ""body"": ""...""               // optional, must be a string
+        }
+
+        Instructions:
+        1. Copy `httpMethod` to `method`, and `url` to `url`.
+        2. If `content` exists, set:
+           - `headers` to include ""Content-Type"": ""application/json""
+           - `body` to a stringified JSON version of `content`
+        3. If `content` is missing, omit both `headers` and `body`.
+        4. Output ONLY the final JSON object. Do NOT include any explanation or surrounding text.
+        ";
+
         // Add a prompt to detect user intent for state transitions
         Prompts[PromptsConstants.CommandInvocation.Keys.CommandInvocationDetectNextStatePromptKey] =
-            "Analyze the user's input and determine the next workflow state using the following rules:\n" +
-            "1. If the user explicitly requests to modify the selected command (e.g., URI, method, or body), return \"CommandSelect\".\n" +
-            "2. If the user explicitly requests to modify the expected outcome (e.g., status code, expected content, or error), return \"ExpectedOutcome\".\n" +
-            "3. If no selected command has been defined yet, return \"CommandSelect\".\n" +
-            "4. If no expected outcome has been defined yet, return \"ExpectedOutcome\".\n" +
-            "5. If the user explicitly indicates a desire to proceed (e.g., \"run the command\", \"go ahead\", etc.) and both the command and expected outcome are already known, return \"None\".\n\n" +
-            "Important:\n" +
-            "- Do **not** infer user intent from context or previous messages.\n" +
-            "- Only change state when the user **explicitly** says so.\n" +
-            "- Do not assume the user wants to change anything unless clearly stated.\n\n" +
-            "Always include a `currentStatus` field summarizing:\n" +
-            "- The selected command: full URI, HTTP method, and content (if any).\n" +
-            "- The expected outcome: status code, content, and error (if any).\n\n" +
-            "Also include a `reasoning` field explaining why you selected the `nextState`, based strictly on explicit user input.\n\n" +
-            "Respond with a JSON object with exactly these three fields:\n" +
-            "- \"nextState\": one of \"CommandSelect\", \"ExpectedOutcome\", or \"None\".\n" +
-            "- \"currentStatus\": concise, user-friendly summary.\n" +
-            "- \"reasoning\": brief explanation referencing the user's explicit input.\n\n" +
-            "No other fields or text should be returned.";
+            "🧭 Analyze the user's input and determine the next workflow state based on these rules:\n" +
+            "\n" +
+            "### 🔄 TRANSITION LOGIC\n" +
+            "1. If the user explicitly asks to change or select the command (URI, method, or body), return `CommandSelect`.\n" +
+            "2. If the user explicitly asks to define or change the expected outcome (status code, response content, or error), return `ExpectedOutcomeSelect`.\n" +
+            "3. If no command has been selected yet (not just available), return `CommandSelect`. Use the \"Currently Selected Command\" line in the context to determine whether a command was already selected.\n" +
+            "4. Do **not** require an expected outcome unless the user explicitly provides one.\n" +
+            "5. If the user explicitly says to proceed (e.g., \"run\", \"execute\", \"go ahead\", \"I accept\"), and a command has already been selected, return `CommandInvocation`.\n" +
+            "   If no command has been selected, treat this as implicit confirmation and return CommandSelect to initiate selection.\n" +
+            "6. If a command result already exists in the context, return an empty string `\"\"` and do not transition.\n" +
+            "\n" +
+            "### 🚫 IMPORTANT RULES\n" +
+            "- Do **not** infer intent from prior context or memory.\n" +
+            "- Only transition state if the user **explicitly** indicates intent.\n" +
+            "- Do **not** assume the user wants to define an expected outcome unless clearly stated.\n" +
+            "\n" +
+            "### 🧾 OUTPUT FORMAT\n" +
+            "Respond strictly with a JSON object containing **only** this field:\n" +
+            "- `nextState`: One of `CommandSelect`, `ExpectedOutcomeSelect`, `CommandInvocation`, or `\"\"` (empty string).\n" +
+            "\n" +
+            "### ❌ Do not return any other fields or text.\n";
 
-        var commandInvocationReturnedOutputSchema = new
+        var commandInvocationAnalysisReturnedOutputSchema = new
         {
             type = "object",
             properties = new
             {
-                isExpectedDetected = new { type = "boolean", description = "True if all expectations are met and the step is complete; false if user assistance or a new tool call is needed." },
-                analysis = new { type = "string", description = "Summary of the command invocation outcome, including what was expected, what was returned, and what the next step is." }
+                analysis = new { type = "string", description = "Full user-facing message, including all required sections." }
             },
-            required = new[] { "isExpectedDetected", "analysis" }
+            required = new[] { "analysis" }
         };
 
-        StructuredResponses.Add<CommandInvocationOutput>(PromptsConstants.CommandInvocation.Keys.CommandInvocationReturnedOutputKey,
-            JsonSerializer.Serialize(commandInvocationReturnedOutputSchema));
+        StructuredResponses.Add<CommandInvocationAnalysisOutput>(PromptsConstants.CommandInvocation.Keys.CommandInvocationAnalysisReturnedOutputKey,
+            JsonSerializer.Serialize(commandInvocationAnalysisReturnedOutputSchema));
 
         // Output schema for detecting next state and returning current status
         var commandInvocationDetectNextStateOutputSchema = new
@@ -91,10 +136,9 @@ public class CommandInvocationPromptDescriptor : BasePromptDescriptor
             properties = new
             {
                 nextState = new { type = "string", description = "The next state to transition to. One of: 'CommandSelect', 'ExpectedOutcome', or 'None'." },
-                currentStatus = new { type = "string", description = "A summary of all steps and known information (current status)." },
                 reasoning = new { type = "string", description = "A brief explanation of the logic and evidence leading to the nextState decision." }
             },
-            required = new[] { "nextState", "currentStatus", "reasoning" }
+            required = new[] { "nextState", "reasoning" }
         };
 
         StructuredResponses.Add<CommandInvocationDetectNextStateOutput>(PromptsConstants.CommandInvocation.Keys.CommandInvocationDetectNextStateOutputKey,

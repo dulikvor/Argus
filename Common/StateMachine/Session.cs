@@ -19,6 +19,14 @@ public class Session<TTransition, TStepInput>
         StepResult[stepResultKey] = value;
     }
 
+    public void ResetStepResult(StepResultKey stepResultKey)
+    {
+        if (StepResult.ContainsKey(stepResultKey))
+        {
+            StepResult.Remove(stepResultKey);
+        }
+    }
+
     public void SetCurrentStep(State<TTransition, TStepInput> step, TTransition transition)
     {
         CurrentStep = step;

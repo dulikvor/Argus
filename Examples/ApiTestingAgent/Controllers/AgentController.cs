@@ -1,5 +1,5 @@
 using ApiTestingAgent.Services;
-using Argus.Clients.GitHubLLMQuery;
+using Argus.Clients.LLMQuery;
 using Argus.Common.GitHubAuthentication;
 using Argus.Common.Web;
 using Argus.Contracts.OpenAI;
@@ -14,18 +14,18 @@ namespace ApiTestingAgent.Controllers;
 public class AgentController : ControllerBase
 {
     private readonly IApiTestService _apiTestService;
-    private readonly IGitHubLLMQueryClient _gitHubLLMQueryClient;
+    private readonly IAzureLLMQueryClient _llmQueryClient;
     private readonly IResponseStreamWriter<ServerSentEventsStreamWriter> _responseStreamWriter;
     private readonly ILogger<AgentController> _logger;
 
     public AgentController(
         IApiTestService apiTestService,
-        IGitHubLLMQueryClient gitHubLLMQueryClient,
+        IAzureLLMQueryClient llmQueryClient,
         IResponseStreamWriter<ServerSentEventsStreamWriter> responseStreamWriter,
         ILogger<AgentController> logger)
     {
         _apiTestService = apiTestService;
-        _gitHubLLMQueryClient = gitHubLLMQueryClient;
+        _llmQueryClient = llmQueryClient;
         _responseStreamWriter = responseStreamWriter;
         _logger = logger;
     }

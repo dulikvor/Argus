@@ -1,5 +1,5 @@
-﻿using Argus.Common.Clients;
-using Argus.Common.Data;
+﻿using Argus.Common.Data;
+using Argus.Common.Http;
 using Argus.Contracts;
 using Argus.Contracts.OpenAI;
 using Argus.Data;

@@ -7,5 +7,10 @@ namespace Argus.Common.StateMachine
     {
         public CoPilotChatRequestMessage CoPilotChatRequestMessage { get; set; }
         public StepResult PreviousStepResult { get; set; }
+
+        public void ResetRequestMessage()
+        {
+            CoPilotChatRequestMessage = CoPilotChatRequestMessage.GetUserLast();
+        }
     }
 }

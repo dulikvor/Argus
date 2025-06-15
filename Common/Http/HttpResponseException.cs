@@ -1,7 +1,7 @@
 using Argus.Common.Data;
 using System.Net;
 
-namespace Argus.Common.Clients
+namespace Argus.Common.Http
 {
     public class HttpResponseException : Exception
     {

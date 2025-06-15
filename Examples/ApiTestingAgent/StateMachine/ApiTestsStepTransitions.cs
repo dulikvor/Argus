@@ -6,7 +6,7 @@
         RestDiscovery,
         RawContentGet,
         RestCompile,
-        CommandDiscovery,
+        CommandSelect,
         ExpectedOutcome,
         CommandInvocation,
         CommandInvocationAnalysis,

@@ -1,8 +1,13 @@
-﻿using Argus.Clients.GitHubLLMQuery;
+﻿using Argus.Clients.LLMQuery;
 using Argus.Common.Builtin.PromptDescriptor;
 using Argus.Common.Functions;
+using Argus.Common.Orchestration;
 using Argus.Common.PromptDescriptors;
 using Argus.Common.Retrieval;
+using Argus.Common.Telemetry;
+using Argus.Common.Web;
+using Argus.Contracts.OpenAI;
+using Microsoft.Extensions.Logging;
 
 namespace Argus.Common.StateMachine
 {
@@ -13,11 +18,15 @@ namespace Argus.Common.StateMachine
         public override string GetName() => "EndState";
 
         public EndState(
-            IGitHubLLMQueryClient gitHubLLMQueryClient,
+            IOrchestrationService<TTransition, TStepInput> orchestrationService,
             IPromptDescriptorFactory promptDescriptorFactory, 
             IFunctionDescriptorFactory functionDescriptorFactory,
-            ISemanticStore semanticStore)
-            : base(promptDescriptorFactory, functionDescriptorFactory, semanticStore, gitHubLLMQueryClient)
+            ISemanticStore semanticStore,
+            IAzureLLMQueryClient llmQueryClient,
+            ILogger<State<TTransition, TStepInput>> logger,
+            StreamReporter streamReporter,
+            IStateFactory stateFactory)
+            : base(orchestrationService, promptDescriptorFactory, functionDescriptorFactory, semanticStore, llmQueryClient, logger, streamReporter, stateFactory)
         {
         }
 
@@ -27,21 +36,25 @@ namespace Argus.Common.StateMachine
             TTransition transition,
             TStepInput stepInput)
         {
-            var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(EndPromptDescriptor));
+            using var activityScope = ActivityScope.Create(nameof(EndState<TTransition, TStepInput>));
+            return await activityScope.Monitor<(StepResult, TTransition)>(async () =>
+            {
+                var concretePromptDescriptor = _promptDescriptorFactory.GetPromptDescriptor(nameof(EndPromptDescriptor));
 
-            var coPilotChatRequestMessage = stepInput.CoPilotChatRequestMessage;
-            coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.Prompts.Keys.EndState));
+                var coPilotChatRequestMessage = stepInput.CoPilotChatRequestMessage;
+                coPilotChatRequestMessage.AddSystemMessage(concretePromptDescriptor.GetPrompt(PromptsConstants.Prompts.Keys.EndState), SystemMessagePriority.High);
 
-            var chatCompletionResponse = await _gitHubLLMQueryClient.Query(coPilotChatRequestMessage);
+                var chatCompletionResponse = await _llmQueryClient.Query(coPilotChatRequestMessage);
 
-            return new(
-                    new StepResult
-                    {
-                        StepSuccess = false,
-                        CoPilotChatResponseMessages = chatCompletionResponse
-                    },
-                    default
-                );
+                return new(
+                        new StepResult
+                        {
+                            StepSuccess = false,
+                            CoPilotChatResponseMessages = chatCompletionResponse
+                        },
+                        default
+                    );
+            });
         }
     }
 }

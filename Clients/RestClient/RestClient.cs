@@ -1,7 +1,7 @@
-using Argus.Common.Clients;
-using Argus.Common.Data;
 using System.Net;
 using System.Text;
+using System.Net.Http;
+using Argus.Common.Data;
 
 namespace Argus.Clients.RestClient
 {
@@ -25,19 +25,31 @@ namespace Argus.Clients.RestClient
             {
                 foreach (var header in headers)
                 {
+                    // Content headers must be set on request.Content, not request.Headers
+                    if (string.Equals(header.Key, "Content-Type", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Will be set below when creating StringContent
+                        continue;
+                    }
                     request.Headers.Add(header.Key, header.Value);
                 }
             }
 
             if (!string.IsNullOrEmpty(body))
             {
-                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                // If user provided a Content-Type header, override the default
+                if (headers != null && headers.TryGetValue("Content-Type", out var contentType))
+                {
+                    content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+                }
+                request.Content = content;
             }
 
             var response = await _httpClient.SendAsync(request);
-            var content = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync();
 
-            return (response.StatusCode, content);
+            return (response.StatusCode, responseContent);
         }
     }
 }

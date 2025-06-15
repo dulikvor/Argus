@@ -1,0 +1,63 @@
+{
+  "openapi": "3.0.0",
+    "info": {
+        "title": "Sample Azure Table API",
+        "version": "2025-02-01"
+  },
+  "paths": {
+    "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Storage/storageAccounts/{accountName}/tableServices/default/tables/{tableName}": {
+      "put": {
+        "summary": "Create or update a table resource.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TableResource": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["Storage", "StorageV2"]
+          },
+          "properties": {
+            "$ref": "#/components/schemas/TableProperties"
+          }
+        }
+      },
+      "TableProperties": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "createdBy": { "type": "string" },
+              "tags": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Active", "Disabled"]
+          }
+        }
+      }
+    }
+  }
+}

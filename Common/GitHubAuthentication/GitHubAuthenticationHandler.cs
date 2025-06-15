@@ -1,5 +1,4 @@
 using Argus.Clients.GitHubAuthentication;
-using Argus.Common.Clients;
 using Argus.Common.Data;
 using Argus.Data;
 using Microsoft.AspNetCore.Authentication;
@@ -9,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using Argus.Common.Http;
 
 namespace Argus.Common.GitHubAuthentication;
 

@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Argus.Common.Clients
+namespace Argus.Common.Http
 {
     public static class HttpClientsServiceCollectionExtension
     {
@@ -25,7 +25,7 @@ namespace Argus.Common.Clients
                 httpClientBuilder.AddHttpMessageHandler(provider =>
                 {
                     var options = provider.GetRequiredService<IOptions<TEndpoint>>().Value;
-                    return new HttpClientAuthenticationHandler(options.Audience, tokenCreator);
+                    return new HttpClientAuthenticationHandler(options, tokenCreator);
                 });
             }
 

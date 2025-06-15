@@ -26,13 +26,18 @@
     <Compile Remove="Examples\**" />
     <EmbeddedResource Remove="Examples\**" />
     <None Remove="Examples\**" />
+    <Compile Remove="Tests\Argus.Tests\**" />
+    <EmbeddedResource Remove="Tests\Argus.Tests\**" />
+    <None Remove="Tests\Argus.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
     <PackageReference Include="Azure.Identity" Version="1.13.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.14" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
-    <PackageReference Include="OpenAI" Version="2.0.0" />
+    <PackageReference Include="OpenAI" Version="2.1.0" />
+    <PackageReference Include="Polly" Version="8.6.0" />
   </ItemGroup>
 
   <ItemGroup>
